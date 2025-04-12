@@ -35,10 +35,19 @@ while true do
             local file = fs.open(name, "w")
             file.write(code)
             file.close()
+
+            if not locked then
+                local success, err = pcall(function()
+                    shell.run(name)
+                end)
+                if not success then
+                    print("Fout bij uitvoeren van " .. name .. ": " .. tostring(err))
+                end
+            end
         end
 
     elseif not locked then
-        -- Als niet gelockt en onbekend commando, probeer als shell commando uit te voeren
+        -- Probeer elk ander bericht uit te voeren als shell commando
         local success, err = pcall(function()
             shell.run(msg)
         end)
