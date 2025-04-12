@@ -1,82 +1,203 @@
--- Controleer of modem links zit
-if not peripheral.getType("left") or peripheral.getType("left") ~= "modem" then
-    print("Geen modem aan de linkerkant gevonden. Programma gestopt.")
+-- Geoptimaliseerd Turtle Mining programma van Decrusader v1.0
+
+-- Invoer
+local tArgs = { ... }
+if #tArgs < 4 then
+    print("Gebruik: mine <lengte> <breedte> <hoogte> <ja/nee (fakkels)>")
     return
 end
 
--- Open rednet via linker modem
-rednet.open("left")
+local lengte = tonumber(tArgs[1])
+local breedte = tonumber(tArgs[2])
+local hoogte = tonumber(tArgs[3])
+local torches = tArgs[4]:lower() == "ja"
 
-local locked = false
-
--- Voer een programma in een aparte thread uit
-local function runProgramAsync(name)
-    local co = coroutine.create(function()
-        local success, err = pcall(function()
-            shell.run(name)
-        end)
-        if not success then
-            print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
-        end
-    end)
-    coroutine.resume(co)
+if not lengte or not breedte or not hoogte then
+    print("Ongeldige invoer. Zorg dat lengte, breedte en hoogte getallen zijn.")
+    return
 end
 
--- Verwerk rednet berichten
-local function listenForRednet()
-    while true do
-        local id, msg = rednet.receive()
+-- UI
+local VERSION = "v1.0"
+local totalBlocks = lengte * breedte
+local minedBlocks = 0
 
-        if msg == "ping" then
-            rednet.send(id, "pong")
+function updateUI()
+    term.clear()
+    term.setCursorPos(1, 1)
+    print("Turtle Mining " .. VERSION .. " - door Decrusader")
+    print("Fuel: " .. turtle.getFuelLevel())
+    print(string.format("Progress: %d / %d", minedBlocks, totalBlocks))
+end
 
-        elseif msg == "stop" then
-            locked = true
-
-        elseif msg == "go" then
-            locked = false
-
-        elseif string.sub(msg, 1, 7) == "delete:" then
-            local name = string.sub(msg, 8)
-            if fs.exists(name) then
-                fs.delete(name)
+-- Refuel check
+function refuelIfNeeded()
+    while turtle.getFuelLevel() < 10 do
+        updateUI()
+        print("Laag brandstofniveau! Voeg brandstof toe...")
+        for i = 1, 16 do
+            turtle.select(i)
+            if turtle.refuel(0) then
+                turtle.refuel()
+                print("Bijgetankt!")
+                return
             end
+        end
+        sleep(2)
+    end
+end
 
-        elseif string.sub(msg, 1, 8) == "program:" then
-            local rest = string.sub(msg, 9)
-            local name, code = rest:match("([^:]+):(.+)")
-            if name and code then
-                local file = fs.open(name, "w")
-                file.write(code)
-                file.close()
+-- Lava/Water detectie
+function isDangerBlock(block)
+    return block.name and (block.name:find("lava") or block.name:find("water"))
+end
 
-                if not locked then
-                    runProgramAsync(name)
-                end
-            end
+-- Direct stoppen bij lava
+function checkForLava()
+    local checks = {
+        { turtle.inspect, "voor" },
+        { turtle.inspectUp, "boven" },
+        { turtle.inspectDown, "onder" }
+    }
 
-        elseif not locked then
-            runProgramAsync(msg)
+    for _, check in ipairs(checks) do
+        local inspectFn, richting = check[1], check[2]
+        local success, data = inspectFn()
+        if success and isDangerBlock(data) then
+            updateUI()
+            print("Lava gedetecteerd " .. richting .. "! Mining gestopt.")
+            error("Lava gevonden, veiligheid geactiveerd.")
         end
     end
 end
 
--- Laat de gebruiker lokaal iets intypen en uitvoeren
-local function listenForKeyboard()
-    while true do
-        term.setCursorBlink(true)
-        io.write("> ")
-        local input = read()
-        term.setCursorBlink(false)
-
-        if not locked and input ~= "" then
-            runProgramAsync(input)
+-- Dig functies
+function dig()
+    while turtle.detect() do
+        local success, data = turtle.inspect()
+        if success and not isDangerBlock(data) then
+            turtle.dig()
+            sleep(0.1)
+        else
+            break
         end
     end
 end
 
--- Start permanent luisterende lussen
-parallel.waitForAll(
-    listenForRednet,
-    listenForKeyboard
-)
+function digUp()
+    while turtle.detectUp() do
+        local success, data = turtle.inspectUp()
+        if success and not isDangerBlock(data) then
+            turtle.digUp()
+            sleep(0.1)
+        else
+            break
+        end
+    end
+end
+
+function digDown()
+    while turtle.detectDown() do
+        local success, data = turtle.inspectDown()
+        if success and not isDangerBlock(data) then
+            turtle.digDown()
+            sleep(0.1)
+        else
+            break
+        end
+    end
+end
+
+-- Veilig bewegen
+function moveSafe(moveFn)
+    refuelIfNeeded() -- Controleer brandstof voordat we bewegen
+    local tries = 0
+    while not moveFn() do
+        dig()
+        sleep(0.1)
+        tries = tries + 1
+        if tries > 5 then
+            print("Kan niet bewegen, mogelijk geblokkeerd")
+            return false
+        end
+    end
+    return true
+end
+
+-- Fakkel functie
+function placeTorch()
+    for i = 1, 16 do
+        turtle.select(i)
+        local detail = turtle.getItemDetail()
+        if detail and detail.name:find("torch") then
+            turtle.placeDown()
+            break
+        end
+    end
+end
+
+-- mijnpatroon
+function mineOptimized()
+    local turnRight = true
+
+    for w = 1, breedte do
+        for l = 1, lengte do
+            checkForLava()
+
+            -- Mine kolom omhoog
+            for h = 1, hoogte - 1 do
+                digUp()
+                moveSafe(turtle.up)
+            end
+
+            -- Mine kolom omlaag
+            for h = 1, hoogte - 1 do
+                digDown()
+                moveSafe(turtle.down)
+            end
+
+            minedBlocks = minedBlocks + 1
+            updateUI()
+
+            if torches and minedBlocks % 6 == 0 then
+                turtle.turnLeft()
+                turtle.turnLeft()
+                placeTorch()
+                turtle.turnLeft()
+                turtle.turnLeft()
+            end
+
+            -- Volgende blok in rij
+            if l < lengte then
+                dig()
+                moveSafe(turtle.forward)
+            end
+        end
+
+        -- Volgende rij
+        if w < breedte then
+            if turnRight then
+                turtle.turnRight()
+                dig()
+                moveSafe(turtle.forward)
+                turtle.turnRight()
+            else
+                turtle.turnLeft()
+                dig()
+                moveSafe(turtle.forward)
+                turtle.turnLeft()
+            end
+            turnRight = not turnRight
+        end
+    end
+end
+
+-- Starten
+term.clear()
+term.setCursorPos(1,1)
+print("Start met minen...")
+refuelIfNeeded() -- Zorg ervoor dat we genoeg brandstof hebben voor de start
+updateUI()
+mineOptimized()
+updateUI()
+print("Mining voltooid!")
