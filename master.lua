@@ -1,83 +1,84 @@
--- Master computer
-local activeTurtles = {}
-local turtleCount = 0
-local PROGRAM_NAME = "example_program"
+-- Controleer of modem links zit
+if not peripheral.getType("left") or peripheral.getType("left") ~= "modem" then
+    print("Geen modem aan de linkerkant gevonden. Programma gestopt.")
+    return
+end
 
--- Functie om turtles te controleren
-local function checkTurtles()
-    -- Probeer verbinding te maken met elke turtle op het netwerk
-    local turtles = peripheral.getNames()
-    activeTurtles = {}
-    turtleCount = 0
+-- Open rednet via linker modem
+rednet.open("left")
+print("Rednet geopend via linker modem.")
 
-    for _, name in ipairs(turtles) do
-        if string.match(name, "turtle") then
-            if peripheral.call(name, "getFuelLevel") then
-                table.insert(activeTurtles, name)
-                turtleCount = turtleCount + 1
-            end
+local turtles = {}
+
+-- Functie om turtles te detecteren
+local function pingTurtles()
+    turtles = {}
+    rednet.broadcast("ping")
+    local timer = os.startTimer(2)
+
+    while true do
+        local event, id, msg = os.pullEvent()
+        if event == "rednet_message" and msg == "pong" then
+            table.insert(turtles, id)
+        elseif event == "timer" and id == timer then
+            break
         end
     end
 end
 
--- Functie om een commando naar een turtle te sturen
-local function sendCommandToTurtle(turtle, command)
-    if peripheral.call(turtle, "executeCommand", command) then
-        print("Commando '" .. command .. "' verzonden naar " .. turtle)
-    else
-        print("Kon commando niet verzenden naar " .. turtle)
-    end
-end
-
--- Functie om een programma naar een turtle te sturen
-local function sendProgramToTurtle(turtle, programName)
-    local program = fs.open(programName, "r")
-    if program then
-        local programCode = program.readAll()
-        program.close()
-        local file = fs.open("/rom/programs/" .. programName, "w")
-        file.write(programCode)
-        file.close()
-        sendCommandToTurtle(turtle, "run " .. programName)
-        print("Programma " .. programName .. " verzonden naar " .. turtle)
-    else
-        print("Kon programma " .. programName .. " niet vinden.")
-    end
-end
-
--- Functie om de UI weer te geven
-local function displayUI()
+-- UI weergeven
+local function drawUI()
     term.clear()
-    term.setCursorPos(1, 1)
-    print("Master Computer - Status")
-    print("Aantal actieve turtles: " .. turtleCount)
-    print("")
+    term.setCursorPos(1,1)
+    print("Master Controller")
+    print("Aantal actieve turtles: " .. #turtles)
+    print("Typ een commando:")
+    print("stop")
+    print("go")
+    print("verstuur <bestandsnaam>")
+    print("update <bestandsnaam>")
 end
 
--- Main loop voor commando's
-while true do
-    displayUI()
-    print("Geef commando in (stop/go/verstuur/update): ")
-    local input = read()
-
-    if input == "stop" then
-        for _, turtle in ipairs(activeTurtles) do
-            sendCommandToTurtle(turtle, "stop")
-        end
-        print("Alle turtles zijn gestopt.")
-    elseif input == "go" then
-        for _, turtle in ipairs(activeTurtles) do
-            sendCommandToTurtle(turtle, "go")
-        end
-        print("Alle turtles zijn geactiveerd.")
-    elseif input == "verstuur" or input == "update" then
-        for _, turtle in ipairs(activeTurtles) do
-            sendProgramToTurtle(turtle, PROGRAM_NAME)
-        end
-        print("Programma " .. PROGRAM_NAME .. " verzonden naar alle turtles.")
+-- Programma verzenden naar turtles
+local function sendProgramToTurtles(programName)
+    if not fs.exists(programName) then
+        print("Programma '" .. programName .. "' niet gevonden.")
+        return
     end
 
-    -- Wacht 5 seconden voor de volgende check
-    sleep(5)
-    checkTurtles()
+    local file = fs.open(programName, "r")
+    local data = file.readAll()
+    file.close()
+
+    for _, id in ipairs(turtles) do
+        rednet.send(id, "delete:" .. programName)
+        sleep(0.1)
+        rednet.send(id, "program:" .. programName .. ":" .. data)
+        sleep(0.1)
+    end
+
+    print("Programma '" .. programName .. "' verzonden naar alle turtles.")
+end
+
+-- Commando-loop
+while true do
+    pingTurtles()
+    drawUI()
+
+    io.write("> ")
+    local input = read()
+    local command, arg = input:match("^(%S+)%s*(.-)$")
+
+    if command == "stop" or command == "go" then
+        for _, id in ipairs(turtles) do
+            rednet.send(id, command)
+        end
+        print("Commando '" .. command .. "' verzonden.")
+    elseif (command == "verstuur" or command == "update") and arg ~= "" then
+        sendProgramToTurtles(arg)
+    else
+        print("Ongeldig of onvolledig commando.")
+    end
+
+    sleep(1)
 end
