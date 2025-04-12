@@ -10,7 +10,7 @@ rednet.open("left")
 local locked = false
 local runningTasks = {}
 
--- Functie om een programma in de achtergrond uit te voeren
+-- Voer een programma in de achtergrond uit
 local function runProgramAsync(name)
     local task = function()
         local success, err = pcall(function()
@@ -21,12 +21,11 @@ local function runProgramAsync(name)
         end
     end
 
-    -- Start in een parallelle thread
     table.insert(runningTasks, task)
 end
 
--- Event handler loop
-local function listenForCommands()
+-- Verwerk rednet berichten
+local function listenForRednet()
     while true do
         local id, msg = rednet.receive()
 
@@ -59,21 +58,36 @@ local function listenForCommands()
             end
 
         elseif not locked then
-            -- Als niet gelockt en onbekend commando, probeer als programma uit te voeren
             runProgramAsync(msg)
         end
     end
 end
 
--- Parallel-loop: command listener + alle async taken
-while true do
-    local tasks = {listenForCommands}
+-- Laat de gebruiker ook lokaal iets typen en uitvoeren
+local function listenForKeyboard()
+    while true do
+        term.setCursorBlink(true)
+        term.setCursorPos(1, 1)
+        print("Typ een commando om uit te voeren (lokaal):")
+        io.write("> ")
+        local input = read()
+        term.setCursorBlink(false)
 
-    -- Voeg actieve shell-runs toe
+        if not locked and input ~= "" then
+            runProgramAsync(input)
+        end
+    end
+end
+
+-- Combineer rednet luisteren, keyboard en actieve taken
+while true do
+    local tasks = {listenForRednet, listenForKeyboard}
+
+    -- Voeg elke actieve taak toe aan de tasklist
     for _, task in ipairs(runningTasks) do
         table.insert(tasks, task)
     end
 
-    -- Wacht tot iets klaar is (of blijft luisteren als alles draait)
+    -- Wacht tot één van de taken klaar is, dan herstart alles
     parallel.waitForAny(table.unpack(tasks))
 end
