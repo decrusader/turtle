@@ -34,19 +34,18 @@ local function blockTurtle()
 end
 
 -- Voer programma's uit
-local function runProgramAsync(name)
+local function runProgram(name)
     if locked then
         return
     end
 
-    -- Voer het programma uit in een coroutine
-    local co = coroutine.create(function()
-        local success, err = pcall(function() shell.run(name) end)
-        if not success then
-            print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
-        end
+    local success, err = pcall(function()
+        shell.run(name)
     end)
-    coroutine.resume(co)
+
+    if not success then
+        print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
+    end
 end
 
 -- Verwerk rednet berichten
@@ -81,12 +80,12 @@ local function listenForRednet()
                 file.write(code)
                 file.close()
                 if not locked then
-                    runProgramAsync(name)
+                    runProgram(name)
                 end
             end
 
         elseif not locked then
-            runProgramAsync(msg)
+            runProgram(msg)
         end
     end
 end
@@ -102,7 +101,7 @@ local function listenForKeyboard()
         term.setCursorBlink(false)
 
         if input ~= "" and not locked then
-            runProgramAsync(input)
+            runProgram(input)
         end
     end
 end
