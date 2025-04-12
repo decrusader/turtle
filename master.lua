@@ -5,32 +5,30 @@ rednet.open(modemSide)    -- Open de modem voor communicatie
 local activeTurtles = {}  -- Houdt bij welke turtles actief zijn
 local programName = "turtleProgram"  -- Het programma dat naar de turtles wordt verzonden
 
--- Functie om alle turtles in het netwerk te verkrijgen
-function getTurtles()
-    local ids = {}
-    local termList = peripheral.getNames()
-    
-    -- Zoek naar alle turtles
-    for _, id in ipairs(termList) do
-        if peripheral.getType(id) == "turtle" then
-            table.insert(ids, id)
-        end
-    end
-    return ids
+-- Functie om het aantal actieve turtles weer te geven
+function showUI()
+    term.clear()
+    term.setCursorPos(1, 1)
+    print("Aantal actieve turtles: " .. #activeTurtles)
 end
 
 -- Functie om turtles te stoppen
-function stopTurtles()
-    for _, id in ipairs(activeTurtles) do
-        rednet.send(id, "stop")
+function stopTurtle(turtleID)
+    -- Zoek de turtle in de lijst en verwijder deze
+    for i, id in ipairs(activeTurtles) do
+        if id == turtleID then
+            table.remove(activeTurtles, i)
+            break
+        end
     end
+    showUI()  -- Update de UI met het nieuwe aantal actieve turtles
 end
 
 -- Functie om turtles weer te starten
-function startTurtles()
-    for _, id in ipairs(activeTurtles) do
-        rednet.send(id, "go")
-    end
+function startTurtle(turtleID)
+    -- Voeg de turtle toe aan de lijst van actieve turtles
+    table.insert(activeTurtles, turtleID)
+    showUI()  -- Update de UI met het nieuwe aantal actieve turtles
 end
 
 -- Functie om een programma naar de turtles te sturen
@@ -47,13 +45,6 @@ function sendProgramToTurtles()
     end
 end
 
--- Functie om het aantal actieve turtles weer te geven
-function showUI()
-    term.clear()
-    term.setCursorPos(1, 1)
-    print("Aantal actieve turtles: " .. #activeTurtles)
-end
-
 -- Commando-ontvangst loop
 function handleCommands()
     while true do
@@ -64,17 +55,10 @@ function handleCommands()
             
             if msg == "stop" then
                 -- Verwijder turtle uit actieve lijst
-                for i, id in ipairs(activeTurtles) do
-                    if id == sender then
-                        table.remove(activeTurtles, i)
-                        break
-                    end
-                end
-                showUI()  -- Update de UI met het nieuwe aantal actieve turtles
+                stopTurtle(sender)
             elseif msg == "go" then
                 -- Voeg turtle toe aan actieve lijst
-                table.insert(activeTurtles, sender)
-                showUI()  -- Update de UI met het nieuwe aantal actieve turtles
+                startTurtle(sender)
             elseif msg == "verstuur/" .. programName then
                 -- Het programma wordt geüpdatet en naar de turtles gestuurd
                 sendProgramToTurtles()
@@ -83,10 +67,5 @@ function handleCommands()
     end
 end
 
--- Verkrijg de turtles en toon de UI
-getTurtles()
-showUI()
-
 -- Start de commando-handler
 handleCommands()
-
