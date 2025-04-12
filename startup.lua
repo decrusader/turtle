@@ -29,6 +29,13 @@ end
 -- Laad de status van de vergrendeling bij het opstarten
 local locked = loadLockStatus()
 
+-- Functie om de turtle volledig te blokkeren
+local function blockTurtle()
+    while locked do
+        os.sleep(1)  -- Wacht 1 seconde tussen de checks, zodat de turtle niets kan doen.
+    end
+end
+
 -- Voer een programma in de achtergrond uit
 local function runProgramAsync(name)
     if locked then
@@ -49,6 +56,9 @@ end
 -- Verwerk rednet berichten
 local function listenForRednet()
     while true do
+        -- Als turtle vergrendeld is, stop dan de uitvoering van deze functie
+        blockTurtle()
+
         local id, msg = rednet.receive()
 
         if msg == "ping" then
@@ -96,6 +106,9 @@ end
 -- Laat de gebruiker lokaal iets intypen en uitvoeren
 local function listenForKeyboard()
     while true do
+        -- Als turtle vergrendeld is, stop dan de uitvoering van deze functie
+        blockTurtle()
+
         term.setCursorBlink(true)
         io.write("> ")
         local input = read()
