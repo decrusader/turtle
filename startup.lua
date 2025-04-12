@@ -63,12 +63,10 @@ local function listenForRednet()
     end
 end
 
--- Laat de gebruiker ook lokaal iets typen en uitvoeren
+-- Laat de gebruiker lokaal iets intypen en uitvoeren
 local function listenForKeyboard()
     while true do
         term.setCursorBlink(true)
-        term.setCursorPos(1, 1)
-        print("Typ een commando om uit te voeren (lokaal):")
         io.write("> ")
         local input = read()
         term.setCursorBlink(false)
@@ -83,11 +81,9 @@ end
 while true do
     local tasks = {listenForRednet, listenForKeyboard}
 
-    -- Voeg elke actieve taak toe aan de tasklist
     for _, task in ipairs(runningTasks) do
         table.insert(tasks, task)
     end
 
-    -- Wacht tot één van de taken klaar is, dan herstart alles
     parallel.waitForAny(table.unpack(tasks))
 end
