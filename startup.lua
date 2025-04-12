@@ -1,4 +1,4 @@
--- Turtle Script: Wacht op commando's van de Master
+-- Turtle Script
 local modemSide = "left"  -- Pas dit aan als de modem aan een andere kant is aangesloten
 rednet.open(modemSide)    -- Open de rednet modem
 
@@ -7,26 +7,27 @@ function registerTurtle()
     rednet.broadcast("go")  -- Stuur bericht naar Master Computer om turtle te registreren
 end
 
--- Wacht op commando om te stoppen
+-- Functie om de status van de turtle te controleren
+function checkTurtleStatus()
+    -- Controleer of de turtle brandstof heeft (actief is)
+    if turtle.getFuelLevel() > 0 then
+        rednet.send(rednet.lookup("master")[1], "active")  -- Stuur een "active" bericht naar de master
+    else
+        rednet.send(rednet.lookup("master")[1], "inactive")  -- Stuur een "inactive" bericht naar de master
+    end
+end
+
+-- Luister naar berichten van de Master Computer
 while true do
-    -- Registreer de turtle bij opstarten
-    registerTurtle()
-    
-    -- Wacht op berichten van de Master Computer
     local _, sender, _, _, message = os.pullEvent("rednet_message")
     
-    print("Turtle ontving bericht: " .. message)  -- Debugging, toont het bericht dat ontvangen wordt
-    
-    if message == "stop" then
+    if message == "checkStatus" then
+        checkTurtleStatus()  -- Controleer de status van de turtle
+    elseif message == "stop" then
         -- Stop de turtle
         term.clear()
         term.setCursorPos(1, 1)
         print("Turtle gestopt. Wacht op opdracht.")
         break
-    elseif message == "go" then
-        -- De turtle blijft actief
-        term.clear()
-        term.setCursorPos(1, 1)
-        print("Turtle is actief.")
     end
 end
