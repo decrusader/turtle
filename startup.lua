@@ -68,6 +68,9 @@ local function listenForRednet()
             locked = true
             saveLockStatus(locked)  -- Sla de vergrendelingsstatus op
             print("Turtle is nu vergrendeld. Geen programma's kunnen meer worden uitgevoerd.")
+            print("Turtle blokkeert nu en sluit automatisch af.")
+            os.sleep(3)  -- Wacht een paar seconden om het bericht te tonen
+            os.shutdown()  -- Stop de turtle automatisch na het blokkeren
 
         elseif msg == "go" then
             locked = false
