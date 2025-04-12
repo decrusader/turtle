@@ -1,8 +1,11 @@
 -- Master Computer Script
-local activeTurtles = {}  -- Turtles die actief zijn (we gaan een lijst gebruiken om te tracken)
-local programName = "turtleProgram"  -- Naam van het te verzenden programma
+local modemSide = "left"  -- Pas dit aan als de modem aan een andere kant is aangesloten
+rednet.open(modemSide)    -- Open de modem voor communicatie
 
--- Functie om alle turtles te verkrijgen in het netwerk
+local activeTurtles = {}  -- Houdt bij welke turtles actief zijn
+local programName = "turtleProgram"  -- Het programma dat naar de turtles wordt verzonden
+
+-- Functie om alle turtles in het netwerk te verkrijgen
 function getTurtles()
     local ids = {}
     local termList = peripheral.getNames()
@@ -30,7 +33,7 @@ function startTurtles()
     end
 end
 
--- Functie om een programma naar alle turtles te verzenden
+-- Functie om een programma naar de turtles te sturen
 function sendProgramToTurtles()
     local program = fs.open(programName, "r")
     local programCode = program.readAll()
@@ -44,7 +47,7 @@ function sendProgramToTurtles()
     end
 end
 
--- UI om het aantal actieve turtles te tonen
+-- Functie om het aantal actieve turtles weer te geven
 function showUI()
     term.clear()
     term.setCursorPos(1, 1)
@@ -60,11 +63,11 @@ function handleCommands()
             local msg, sender = param, sender
             
             if msg == "stop" then
-                -- Turtle is gestopt
+                -- Verwijder turtle uit actieve lijst
                 activeTurtles[sender] = nil
                 showUI()
             elseif msg == "go" then
-                -- Turtle is weer actief
+                -- Voeg turtle toe aan actieve lijst
                 table.insert(activeTurtles, sender)
                 showUI()
             elseif msg == "verstuur/" .. programName then
@@ -75,7 +78,9 @@ function handleCommands()
     end
 end
 
--- Start het commando handler
+-- Verkrijg de turtles en toon de UI
 getTurtles()
 showUI()
+
+-- Start de commando-handler
 handleCommands()
