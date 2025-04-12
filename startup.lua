@@ -61,6 +61,8 @@ local function listenForRednet()
 
         local id, msg = rednet.receive()
 
+        print("Bericht ontvangen: " .. tostring(msg))  -- Debugging: toon welk bericht we ontvangen
+
         if msg == "ping" then
             rednet.send(id, "pong")
 
@@ -76,7 +78,6 @@ local function listenForRednet()
             locked = false
             saveLockStatus(locked)  -- Sla de vergrendelingsstatus op
             print("Turtle is ontgrendeld en kan weer programma's uitvoeren.")
-            -- Het herladen van de lock status hier zorgt ervoor dat de turtle nu goed ontgrendeld is
 
         elseif string.sub(msg, 1, 7) == "delete:" then
             local name = string.sub(msg, 8)
