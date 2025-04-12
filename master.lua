@@ -64,12 +64,17 @@ function handleCommands()
             
             if msg == "stop" then
                 -- Verwijder turtle uit actieve lijst
-                activeTurtles[sender] = nil
-                showUI()
+                for i, id in ipairs(activeTurtles) do
+                    if id == sender then
+                        table.remove(activeTurtles, i)
+                        break
+                    end
+                end
+                showUI()  -- Update de UI met het nieuwe aantal actieve turtles
             elseif msg == "go" then
                 -- Voeg turtle toe aan actieve lijst
                 table.insert(activeTurtles, sender)
-                showUI()
+                showUI()  -- Update de UI met het nieuwe aantal actieve turtles
             elseif msg == "verstuur/" .. programName then
                 -- Het programma wordt geüpdatet en naar de turtles gestuurd
                 sendProgramToTurtles()
@@ -84,3 +89,4 @@ showUI()
 
 -- Start de commando-handler
 handleCommands()
+
