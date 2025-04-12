@@ -69,6 +69,8 @@ function handleCommands()
         if event == "rednet_message" then
             local msg, sender = param, sender
             
+            print("Ontvangen bericht van turtle:", msg)  -- Debugging, toont het bericht dat ontvangen wordt
+            
             if msg == "stop" then
                 -- Verwijder turtle uit actieve lijst
                 stopTurtle(sender)
