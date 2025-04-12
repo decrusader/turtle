@@ -32,11 +32,14 @@ local function drawUI()
     term.setCursorPos(1,1)
     print("Master Controller")
     print("Aantal actieve turtles: " .. #turtles)
-    print("Typ een commando:")
-    print("stop")
-    print("go")
-    print("verstuur <bestandsnaam>")
-    print("update <bestandsnaam>")
+    print("")
+    print("Typ een commando hieronder:")
+    print("  stop")
+    print("  go")
+    print("  verstuur <bestandsnaam>")
+    print("  update <bestandsnaam>")
+    print("")
+    io.write("> ")
 end
 
 -- Programma verzenden naar turtles
@@ -60,25 +63,42 @@ local function sendProgramToTurtles(programName)
     print("Programma '" .. programName .. "' verzonden naar alle turtles.")
 end
 
--- Commando-loop
+-- Start eerste ping en UI
+pingTurtles()
+drawUI()
+local refreshTimer = os.startTimer(5)
+
+-- Hoofdlus: event-driven
 while true do
-    pingTurtles()
-    drawUI()
+    local event, p1, p2, p3 = os.pullEvent()
 
-    io.write("> ")
-    local input = read()
-    local command, arg = input:match("^(%S+)%s*(.-)$")
+    if event == "timer" and p1 == refreshTimer then
+        pingTurtles()
+        drawUI()
+        refreshTimer = os.startTimer(5)
 
-    if command == "stop" or command == "go" then
-        for _, id in ipairs(turtles) do
-            rednet.send(id, command)
+    elseif event == "char" then
+        -- Begin met invoer van commando
+        term.setCursorBlink(true)
+        local input = read()
+        term.setCursorBlink(false)
+
+        local command, arg = input:match("^(%S+)%s*(.-)$")
+
+        if command == "stop" or command == "go" then
+            for _, id in ipairs(turtles) do
+                rednet.send(id, command)
+            end
+            print("Commando '" .. command .. "' verzonden.")
+        elseif (command == "verstuur" or command == "update") and arg ~= "" then
+            sendProgramToTurtles(arg)
+        else
+            print("Ongeldig of onvolledig commando.")
         end
-        print("Commando '" .. command .. "' verzonden.")
-    elseif (command == "verstuur" or command == "update") and arg ~= "" then
-        sendProgramToTurtles(arg)
-    else
-        print("Ongeldig of onvolledig commando.")
-    end
 
-    sleep(1)
+        sleep(2)
+        pingTurtles()
+        drawUI()
+        refreshTimer = os.startTimer(5)
+    end
 end
