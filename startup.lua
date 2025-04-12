@@ -61,14 +61,11 @@ local function listenForRednet()
             if not locked then
                 locked = true
                 saveLockStatus(locked)  -- Directe opslaan van status
-                print("Turtle is nu geblokkeerd.")
-            end
-
-        elseif msg == "go" then
-            if locked then
-                locked = false
-                saveLockStatus(locked)  -- Directe opslaan van status
-                print("Turtle is ontgrendeld.")
+                print("Turtle is nu geblokkeerd. Het programma sluit nu af...")
+                -- Wacht een beetje om te garanderen dat de boodschap wordt weergegeven
+                os.sleep(2)
+                -- Turtle afsluiten
+                os.shutdown()
             end
 
         elseif msg:sub(1, 7) == "delete:" then
@@ -114,6 +111,14 @@ end
 
 -- Laad de vergrendelingsstatus bij opstarten
 local locked = loadLockStatus()
+
+-- Check of de turtle geblokkeerd is bij opstarten en sluit af
+if locked then
+    print("Turtle is geblokkeerd en kan niet worden gebruikt.")
+    print("De turtle zal zichzelf afsluiten.")
+    os.sleep(2)  -- Wacht een moment om de boodschap te tonen
+    os.shutdown()  -- Sluit de turtle af
+end
 
 -- Start de rednet en keyboard luisteraars
 parallel.waitForAll(
