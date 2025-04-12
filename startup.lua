@@ -39,6 +39,9 @@ local function runProgram(name)
         return
     end
 
+    -- Zeg tegen de turtle dat hij aan het draaien is, dit voorkomt "spammen" van stop commando's.
+    print("Programma " .. name .. " wordt uitgevoerd...")
+    
     local success, err = pcall(function()
         -- Controleer continu of de turtle geblokkeerd is en stop met uitvoeren
         -- Gebruik gewoon shell.run om het programma uit te voeren
@@ -50,6 +53,9 @@ local function runProgram(name)
     if not success then
         print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
     end
+
+    -- Nadat het programma klaar is, kan de turtle weer reageren op stop commando's.
+    print("Programma " .. name .. " is afgerond.")
 end
 
 -- Verwerk rednet berichten
@@ -61,14 +67,20 @@ local function listenForRednet()
             rednet.send(id, "pong")
 
         elseif msg == "stop" then
-            -- Vergrendel de turtle zonder automatisch afsluiten
-            locked = true
-            saveLockStatus(locked)
+            -- Alleen stop uitvoeren als turtle niet bezig is met een programma
+            if not locked then
+                locked = true
+                saveLockStatus(locked)
+                print("Turtle is nu geblokkeerd.")
+            end
 
         elseif msg == "go" then
             -- Ontgrendel de turtle
-            locked = false
-            saveLockStatus(locked)
+            if locked then
+                locked = false
+                saveLockStatus(locked)
+                print("Turtle is ontgrendeld.")
+            end
 
         elseif string.sub(msg, 1, 7) == "delete:" then
             local name = string.sub(msg, 8)
