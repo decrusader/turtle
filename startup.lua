@@ -1,9 +1,11 @@
 -- Turtle Script: Wacht op commando's van de Master
-local programName = "turtleProgram"  -- Naam van het programma dat de master verzendt
+local modemSide = "left"  -- Pas dit aan als de modem aan een andere kant is aangesloten
+rednet.open(modemSide)    -- Open de rednet modem
 
--- Functie om het wachtwoord in te voeren
-local password = "geheim"  -- Het wachtwoord dat vereist is om toegang te krijgen tot het bestand
+local programName = "turtleProgram"  -- Het programma dat de master verzendt
+local password = "geheim"  -- Het wachtwoord voor beveiliging
 
+-- Functie om om het wachtwoord te vragen
 function askForPassword()
     term.clear()
     term.setCursorPos(1, 1)
@@ -17,7 +19,7 @@ function askForPassword()
     end
 end
 
--- Wacht op commando van de master computer
+-- Altijd wachten op commando van de master computer
 while true do
     local _, sender, _, _, message = os.pullEvent("rednet_message")
     
@@ -33,7 +35,7 @@ while true do
         term.setCursorPos(1, 1)
         print("Turtle gestart! Begin met werken.")
         
-        -- Wacht tot een geüpdatet programma ontvangen wordt
+        -- Wacht op een geüpdate versie van het programma
         while true do
             local _, sender, _, _, message = os.pullEvent("rednet_message")
             
