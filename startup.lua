@@ -26,7 +26,7 @@ local function saveLockStatus(status)
     file.close()
 end
 
--- Vergrendel de turtle
+-- Vergrendel de turtle (blokkeren voor de uitvoering van commando's)
 local function blockTurtle()
     while locked do
         os.sleep(1)  -- Wacht 1 seconde tussen de checks
@@ -40,7 +40,13 @@ local function runProgram(name)
     end
 
     local success, err = pcall(function()
-        shell.run(name)
+        -- Controleer continu of de turtle geblokkeerd is en stop met uitvoeren
+        for line in io.lines(name) do
+            if locked then
+                return
+            end
+            shell.run(line)  -- Voer elke regel uit
+        end
     end)
 
     if not success then
