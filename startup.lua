@@ -13,8 +13,10 @@ local function loadLockStatus()
         local file = fs.open("locked_status.txt", "r")
         local data = file.readAll()
         file.close()
+        print("Vergrendelingsstatus geladen: " .. data)  -- Debug: Toon geladen status
         return textutils.unserialize(data)  -- Zet de opgeslagen tekst om in een boolean
     else
+        print("Geen vergrendelingsbestand gevonden, standaard status is false.")  -- Debug: Toon wanneer bestand niet gevonden is
         return false  -- Geen vergrendelingsbestand betekent standaard niet vergrendeld
     end
 end
@@ -24,6 +26,7 @@ local function saveLockStatus(status)
     local file = fs.open("locked_status.txt", "w")
     file.write(textutils.serialize(status))
     file.close()
+    print("Vergrendelingsstatus opgeslagen: " .. tostring(status))  -- Debug: Toon of de status is opgeslagen
 end
 
 -- Vergrendel de turtle (blokkeren voor de uitvoering van commando's)
