@@ -68,6 +68,13 @@ local function listenForRednet()
                 os.shutdown()
             end
 
+        elseif msg == "start" then
+            if locked then
+                locked = false
+                saveLockStatus(locked)  -- Directe opslaan van status
+                print("Turtle is nu ontgrendeld en kan weer werken.")
+            end
+
         elseif msg:sub(1, 7) == "delete:" then
             local name = msg:sub(8)
             if fs.exists(name) then
