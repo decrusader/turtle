@@ -38,10 +38,15 @@ local function runProgramAsync(name)
     if locked then
         return
     end
-    local success, err = pcall(function() shell.run(name) end)
-    if not success then
-        print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
-    end
+
+    -- Voer het programma uit in een coroutine
+    local co = coroutine.create(function()
+        local success, err = pcall(function() shell.run(name) end)
+        if not success then
+            print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
+        end
+    end)
+    coroutine.resume(co)
 end
 
 -- Verwerk rednet berichten
