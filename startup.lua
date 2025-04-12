@@ -6,7 +6,6 @@ end
 
 -- Open rednet via linker modem
 rednet.open("left")
-print("Rednet geopend via linker modem.")
 
 local locked = false
 
@@ -19,17 +18,14 @@ while true do
 
     elseif msg == "stop" then
         locked = true
-        print("Turtle is vergrendeld.")
 
     elseif msg == "go" then
         locked = false
-        print("Turtle is geactiveerd.")
 
     elseif string.sub(msg, 1, 7) == "delete:" then
         local name = string.sub(msg, 8)
         if fs.exists(name) then
             fs.delete(name)
-            print("Programma verwijderd: " .. name)
         end
 
     elseif string.sub(msg, 1, 8) == "program:" then
@@ -39,12 +35,15 @@ while true do
             local file = fs.open(name, "w")
             file.write(code)
             file.close()
-            print("Programma opgeslagen als: " .. name)
         end
 
     elseif not locked then
-        print("Ontvangen onbekend commando (geen actie ondernomen).")
-    else
-        print("Turtle is gelockt. Geen acties toegestaan.")
+        -- Als niet gelockt en onbekend commando, probeer als shell commando uit te voeren
+        local success, err = pcall(function()
+            shell.run(msg)
+        end)
+        if not success then
+            print("Fout bij uitvoeren commando: " .. tostring(err))
+        end
     end
 end
