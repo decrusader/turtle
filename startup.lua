@@ -36,7 +36,6 @@ end
 -- Voer programma's uit
 local function runProgramAsync(name)
     if locked then
-        print("Turtle is vergrendeld en kan geen programma uitvoeren.")
         return
     end
     local success, err = pcall(function() shell.run(name) end)
@@ -50,8 +49,6 @@ local function listenForRednet()
     while true do
         local id, msg = rednet.receive()
 
-        print("Bericht ontvangen: " .. tostring(msg))
-
         if msg == "ping" then
             rednet.send(id, "pong")
 
@@ -59,13 +56,11 @@ local function listenForRednet()
             -- Vergrendel de turtle zonder automatisch afsluiten
             locked = true
             saveLockStatus(locked)
-            print("Turtle is nu vergrendeld. Geen programma's kunnen meer worden uitgevoerd.")
 
         elseif msg == "go" then
             -- Ontgrendel de turtle
             locked = false
             saveLockStatus(locked)
-            print("Turtle is ontgrendeld en kan weer programma's uitvoeren.")
 
         elseif string.sub(msg, 1, 7) == "delete:" then
             local name = string.sub(msg, 8)
@@ -82,15 +77,11 @@ local function listenForRednet()
                 file.close()
                 if not locked then
                     runProgramAsync(name)
-                else
-                    print("Turtle is vergrendeld, kan het programma niet uitvoeren.")
                 end
             end
 
         elseif not locked then
             runProgramAsync(msg)
-        else
-            print("Turtle is vergrendeld, kan geen programma uitvoeren.")
         end
     end
 end
@@ -107,8 +98,6 @@ local function listenForKeyboard()
 
         if input ~= "" and not locked then
             runProgramAsync(input)
-        elseif locked then
-            print("Turtle is vergrendeld, kan geen programma uitvoeren.")
         end
     end
 end
