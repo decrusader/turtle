@@ -75,7 +75,7 @@ while true do
     if event == "timer" and p1 == refreshTimer then
         pingTurtles()
         drawUI()
-        refreshTimer = os.startTimer(5)
+        refreshTimer = os.startTimer(2)
 
     elseif event == "char" then
         -- Begin met invoer van commando
@@ -99,6 +99,6 @@ while true do
         sleep(2)
         pingTurtles()
         drawUI()
-        refreshTimer = os.startTimer(5)
+        refreshTimer = os.startTimer(2)
     end
 end
