@@ -124,7 +124,6 @@ if locked then
     print("Turtle is geblokkeerd en kan niet worden gebruikt.")
     print("De turtle zal zichzelf afsluiten.")
     os.sleep(2)  -- Wacht een moment om de boodschap te tonen
-    os.shutdown()  -- Sluit de turtle af
 end
 
 -- Start de rednet en keyboard luisteraars
