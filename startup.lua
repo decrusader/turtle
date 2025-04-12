@@ -125,6 +125,11 @@ end
 -- Laad vergrendelingsstatus bij opstarten
 local locked = loadLockStatus()
 
+-- Zorg ervoor dat rednet opnieuw wordt geopend bij opstarten
+if not rednet.isOpen("left") then
+    rednet.open("left")
+end
+
 -- Start de rednet en keyboard luisteraars
 parallel.waitForAll(
     listenForRednet,
