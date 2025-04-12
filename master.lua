@@ -66,7 +66,7 @@ end
 -- Start eerste ping en UI
 pingTurtles()
 drawUI()
-local refreshTimer = os.startTimer(5)
+local refreshTimer = os.startTimer(2)
 
 -- Hoofdlus: event-driven
 while true do
