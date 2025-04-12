@@ -63,28 +63,35 @@ end
 -- Verwerk rednet berichten
 local function listenForRednet()
     while true do
-        local id, msg = rednet.receive()
+        local id, msg = rednet.receive()  -- Wacht op berichten
         print("Ontvangen bericht van id " .. id .. ": " .. msg)
 
+        -- Ping-bericht: Beantwoord met 'pong', maar beïnvloedt geen vergrendelingsstatus
         if msg == "ping" then
             rednet.send(id, "pong")
+            print("Ping ontvangen van id " .. id)
 
+        -- Stop-bericht: Vergrendel de turtle
         elseif msg == "stop" then
-            -- Blokkeer turtle als het niet bezig is
             if not locked then
                 locked = true
                 saveLockStatus(locked)
                 print("Turtle is nu geblokkeerd.")
+            else
+                print("Turtle is al geblokkeerd.")
             end
 
+        -- Go-bericht: Ontgrendel de turtle
         elseif msg == "go" then
-            -- Ontgrendel de turtle als deze vergrendeld is
             if locked then
                 locked = false
                 saveLockStatus(locked)
                 print("Turtle is ontgrendeld.")
+            else
+                print("Turtle is al ontgrendeld.")
             end
 
+        -- Verwijder bestand-bericht
         elseif string.sub(msg, 1, 7) == "delete:" then
             local name = string.sub(msg, 8)
             if fs.exists(name) then
@@ -92,6 +99,7 @@ local function listenForRednet()
                 print("Bestand " .. name .. " verwijderd.")
             end
 
+        -- Programma uploaden
         elseif string.sub(msg, 1, 8) == "program:" then
             local rest = string.sub(msg, 9)
             local name, code = rest:match("([^:]+):(.+)")
@@ -104,6 +112,7 @@ local function listenForRednet()
                 end
             end
 
+        -- Andere berichten: Voer het programma uit, maar alleen als de turtle niet vergrendeld is
         elseif not locked then
             runProgram(msg)
         end
@@ -113,7 +122,7 @@ end
 -- Laat de gebruiker lokaal een programma uitvoeren
 local function listenForKeyboard()
     while true do
-        blockTurtle()
+        blockTurtle()  -- Blokkeer de turtle als deze vergrendeld is
 
         term.setCursorBlink(true)
         io.write("> ")
