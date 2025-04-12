@@ -19,8 +19,7 @@ local function runProgramAsync(name)
             print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
         end
     end)
-    -- Start als coroutine in parallel
-    parallel.waitForAny(function() coroutine.resume(co) end)
+    coroutine.resume(co)
 end
 
 -- Verwerk rednet berichten
