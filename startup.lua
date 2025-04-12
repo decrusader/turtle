@@ -115,6 +115,8 @@ local function listenForRednet()
         -- Andere berichten: Voer het programma uit, maar alleen als de turtle niet vergrendeld is
         elseif not locked then
             runProgram(msg)
+        else
+            print("Programma kan niet worden uitgevoerd omdat de turtle is vergrendeld.")
         end
     end
 end
@@ -131,6 +133,8 @@ local function listenForKeyboard()
 
         if input ~= "" and not locked then
             runProgram(input)
+        elseif locked then
+            print("Programma kan niet worden uitgevoerd omdat de turtle is vergrendeld.")
         end
     end
 end
