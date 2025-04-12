@@ -6,7 +6,6 @@ end
 
 -- Open rednet via linker modem
 rednet.open("left")
-print("Rednet geopend via linker modem.")
 
 local turtles = {}
 
@@ -14,7 +13,7 @@ local turtles = {}
 local function pingTurtles()
     turtles = {}
     rednet.broadcast("ping")
-    local timer = os.startTimer(2)
+    local timer = os.startTimer(1)
 
     while true do
         local event, id, msg = os.pullEvent()
@@ -66,7 +65,7 @@ end
 -- Start eerste ping en UI
 pingTurtles()
 drawUI()
-local refreshTimer = os.startTimer(2)
+local refreshTimer = os.startTimer(2)  -- elke 2 seconden
 
 -- Hoofdlus: event-driven
 while true do
@@ -96,7 +95,7 @@ while true do
             print("Ongeldig of onvolledig commando.")
         end
 
-        sleep(2)
+        sleep(1)
         pingTurtles()
         drawUI()
         refreshTimer = os.startTimer(2)
