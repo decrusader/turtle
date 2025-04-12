@@ -1,103 +1,58 @@
--- Controleer of modem links zit
+-- Controleer of de modem aan de rechterkant zit (modem op de turtle)
 if not peripheral.getType("left") or peripheral.getType("left") ~= "modem" then
     print("Geen modem aan de linkerkant gevonden. Programma gestopt.")
     return
 end
 
--- Open rednet via linker modem
+-- Open rednet via de linker modem
 rednet.open("left")
 
-local turtles = {}
+-- Functie om een bericht naar de turtle te sturen
+local function sendMessageToTurtle(msg)
+    print("Verstuur bericht naar turtle: " .. msg)
+    rednet.broadcast(msg)  -- Stuur het bericht naar alle turtles via de modem
+end
 
--- Functie om turtles te detecteren
-local function pingTurtles()
-    turtles = {}
-    rednet.broadcast("ping")
-    local timer = os.startTimer(1)
+-- Functie om de turtle te stoppen
+local function stopTurtle()
+    sendMessageToTurtle("stop")  -- Stop de turtle
+    print("Turtle is geblokkeerd en wordt afgesloten...")
+end
 
+-- Functie om de turtle te starten (ontgrendelen)
+local function startTurtle()
+    sendMessageToTurtle("start")  -- Start de turtle
+    print("Turtle is nu ontgrendeld en kan weer werken.")
+end
+
+-- Functie om een programma naar de turtle te sturen
+local function sendProgramToTurtle(programName, programCode)
+    local msg = "program:" .. programName .. ":" .. programCode
+    sendMessageToTurtle(msg)
+    print("Programma '" .. programName .. "' gestuurd naar turtle.")
+end
+
+-- Functie voor interactie met de gebruiker
+local function userInput()
     while true do
-        local event, id, msg = os.pullEvent()
-        if event == "rednet_message" and msg == "pong" then
-            table.insert(turtles, id)
-        elseif event == "timer" and id == timer then
-            break
-        end
-    end
-end
-
--- UI weergeven
-local function drawUI()
-    term.clear()
-    term.setCursorPos(1,1)
-    print("Master Controller")
-    print("Aantal actieve turtles: " .. #turtles)
-    print("")
-    print("Typ een commando hieronder:")
-    print("  stop")
-    print("  go")
-    print("  verstuur <bestandsnaam>")
-    print("  update <bestandsnaam>")
-    print("")
-    io.write("> ")
-end
-
--- Programma verzenden naar turtles
-local function sendProgramToTurtles(programName)
-    if not fs.exists(programName) then
-        print("Programma '" .. programName .. "' niet gevonden.")
-        return
-    end
-
-    local file = fs.open(programName, "r")
-    local data = file.readAll()
-    file.close()
-
-    for _, id in ipairs(turtles) do
-        rednet.send(id, "delete:" .. programName)
-        sleep(0.1)
-        rednet.send(id, "program:" .. programName .. ":" .. data)
-        sleep(0.1)
-    end
-
-    print("Programma '" .. programName .. "' verzonden naar alle turtles.")
-end
-
--- Start eerste ping en UI
-pingTurtles()
-drawUI()
-local refreshTimer = os.startTimer(2)  -- elke 2 seconden
-
--- Hoofdlus: event-driven
-while true do
-    local event, p1, p2, p3 = os.pullEvent()
-
-    if event == "timer" and p1 == refreshTimer then
-        pingTurtles()
-        drawUI()
-        refreshTimer = os.startTimer(2)
-
-    elseif event == "char" then
-        -- Begin met invoer van commando
-        term.setCursorBlink(true)
+        print("\nVoer een commando in: stop, start, send <programma naam> <code>")
+        io.write("> ")
         local input = read()
-        term.setCursorBlink(false)
 
-        local command, arg = input:match("^(%S+)%s*(.-)$")
+        -- Verwerk de input van de gebruiker
+        local command, arg1, arg2 = input:match("^(%w+)%s*(%S*)%s*(.*)")
 
-        if command == "stop" or command == "go" then
-            for _, id in ipairs(turtles) do
-                rednet.send(id, command)
-            end
-            print("Commando '" .. command .. "' verzonden.")
-        elseif (command == "verstuur" or command == "update") and arg ~= "" then
-            sendProgramToTurtles(arg)
+        if command == "stop" then
+            stopTurtle()  -- Verzend stop-commando naar de turtle
+        elseif command == "start" then
+            startTurtle()  -- Verzend start-commando naar de turtle
+        elseif command == "send" and arg1 and arg2 then
+            sendProgramToTurtle(arg1, arg2)  -- Verzend programma naar de turtle
         else
-            print("Ongeldig of onvolledig commando.")
+            print("Ongeldig commando.")
         end
-
-        sleep(1)
-        pingTurtles()
-        drawUI()
-        refreshTimer = os.startTimer(2)
     end
 end
+
+-- Start het script en wacht op commando's van de gebruiker
+userInput()
