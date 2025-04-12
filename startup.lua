@@ -56,14 +56,13 @@ local function listenForRednet()
             rednet.send(id, "pong")
 
         elseif msg == "stop" then
+            -- Vergrendel de turtle zonder automatisch afsluiten
             locked = true
             saveLockStatus(locked)
             print("Turtle is nu vergrendeld. Geen programma's kunnen meer worden uitgevoerd.")
-            print("Turtle blokkeert nu en sluit automatisch af.")
-            os.sleep(3)
-            os.shutdown()
 
         elseif msg == "go" then
+            -- Ontgrendel de turtle
             locked = false
             saveLockStatus(locked)
             print("Turtle is ontgrendeld en kan weer programma's uitvoeren.")
