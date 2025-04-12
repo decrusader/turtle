@@ -110,6 +110,8 @@ local function listenForRednet()
         elseif not locked then
             runProgram(msg)
         end
+
+        print("Status van locked na verwerking van bericht: " .. tostring(locked))
     end
 end
 
@@ -131,6 +133,7 @@ end
 
 -- Laad vergrendelingsstatus bij opstarten
 local locked = loadLockStatus()
+print("Begin status van turtle (na opstarten): " .. tostring(locked))
 
 -- Zorg ervoor dat rednet opnieuw wordt geopend bij opstarten
 if not rednet.isOpen("left") then
