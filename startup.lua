@@ -9,9 +9,9 @@ rednet.open("left")
 
 local locked = false
 
--- Voer een programma in een aparte thread uit
+-- Voer een programma in de achtergrond uit
 local function runProgramAsync(name)
-    local co = coroutine.create(function()
+    parallel.waitForAny(function()
         local success, err = pcall(function()
             shell.run(name)
         end)
@@ -19,7 +19,6 @@ local function runProgramAsync(name)
             print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
         end
     end)
-    coroutine.resume(co)
 end
 
 -- Verwerk rednet berichten
