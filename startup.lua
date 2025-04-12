@@ -1,10 +1,10 @@
--- Controleer of er een modem aan de linkerkant zit
+-- Controleer of modem aan de linkerkant zit
 if not peripheral.getType("left") or peripheral.getType("left") ~= "modem" then
     print("Geen modem aan de linkerkant gevonden. Programma gestopt.")
     return
 end
 
--- Open rednet via de linker modem
+-- Open rednet via linker modem
 rednet.open("left")
 
 -- Laad de vergrendelingsstatus uit bestand
@@ -13,11 +13,9 @@ local function loadLockStatus()
         local file = fs.open("locked_status.txt", "r")
         local data = file.readAll()
         file.close()
-        print("Vergrendelingsstatus geladen: " .. data)  -- Debug: Toon geladen status
         return textutils.unserialize(data)  -- Zet de opgeslagen tekst om in een boolean
     else
-        print("Geen vergrendelingsbestand gevonden, standaard status is false.")  -- Debug: Toon wanneer bestand niet gevonden is
-        return false  -- Geen vergrendelingsbestand betekent standaard niet vergrendeld
+        return false  -- Als er geen bestand is, is de turtle niet vergrendeld
     end
 end
 
@@ -26,7 +24,6 @@ local function saveLockStatus(status)
     local file = fs.open("locked_status.txt", "w")
     file.write(textutils.serialize(status))
     file.close()
-    print("Vergrendelingsstatus opgeslagen: " .. tostring(status))  -- Debug: Toon of de status is opgeslagen
 end
 
 -- Vergrendel de turtle (blokkeren voor de uitvoering van commando's)
@@ -36,16 +33,18 @@ local function blockTurtle()
     end
 end
 
--- Voer programma's uit, check of de turtle vergrendeld is
+-- Voer programma's uit
 local function runProgram(name)
     if locked then
-        print("Turtle is vergrendeld, kan programma niet uitvoeren.")
         return
     end
 
+    -- Zeg tegen de turtle dat hij aan het draaien is, dit voorkomt "spammen" van stop commando's.
     print("Programma " .. name .. " wordt uitgevoerd...")
     
     local success, err = pcall(function()
+        -- Controleer continu of de turtle geblokkeerd is en stop met uitvoeren
+        -- Gebruik gewoon shell.run om het programma uit te voeren
         if not locked then
             shell.run(name)
         end
@@ -55,47 +54,40 @@ local function runProgram(name)
         print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
     end
 
+    -- Nadat het programma klaar is, kan de turtle weer reageren op stop commando's.
     print("Programma " .. name .. " is afgerond.")
 end
 
 -- Verwerk rednet berichten
 local function listenForRednet()
     while true do
-        local id, msg = rednet.receive()  -- Wacht op berichten
+        local id, msg = rednet.receive()
 
-        -- Ping-bericht: Beantwoord met 'pong'
         if msg == "ping" then
             rednet.send(id, "pong")
 
-        -- Stop-bericht: Vergrendel de turtle
         elseif msg == "stop" then
+            -- Alleen stop uitvoeren als turtle niet bezig is met een programma
             if not locked then
                 locked = true
-                saveLockStatus(locked)  -- Sla de vergrendelingsstatus op
+                saveLockStatus(locked)
                 print("Turtle is nu geblokkeerd.")
-            else
-                print("Turtle is al geblokkeerd.")
             end
 
-        -- Go-bericht: Ontgrendel de turtle
         elseif msg == "go" then
+            -- Ontgrendel de turtle
             if locked then
                 locked = false
-                saveLockStatus(locked)  -- Sla de vergrendelingsstatus op
+                saveLockStatus(locked)
                 print("Turtle is ontgrendeld.")
-            else
-                print("Turtle is al ontgrendeld.")
             end
 
-        -- Verwijder bestand-bericht
         elseif string.sub(msg, 1, 7) == "delete:" then
             local name = string.sub(msg, 8)
             if fs.exists(name) then
                 fs.delete(name)
-                print("Bestand " .. name .. " verwijderd.")
             end
 
-        -- Programma uploaden
         elseif string.sub(msg, 1, 8) == "program:" then
             local rest = string.sub(msg, 9)
             local name, code = rest:match("([^:]+):(.+)")
@@ -108,11 +100,8 @@ local function listenForRednet()
                 end
             end
 
-        -- Andere berichten: Voer het programma uit, maar alleen als de turtle niet vergrendeld is
         elseif not locked then
             runProgram(msg)
-        else
-            print("Programma kan niet worden uitgevoerd omdat de turtle is vergrendeld.")
         end
     end
 end
@@ -120,7 +109,7 @@ end
 -- Laat de gebruiker lokaal een programma uitvoeren
 local function listenForKeyboard()
     while true do
-        blockTurtle()  -- Blokkeer de turtle als deze vergrendeld is
+        blockTurtle()
 
         term.setCursorBlink(true)
         io.write("> ")
@@ -129,20 +118,12 @@ local function listenForKeyboard()
 
         if input ~= "" and not locked then
             runProgram(input)
-        elseif locked then
-            print("Programma kan niet worden uitgevoerd omdat de turtle is vergrendeld.")
         end
     end
 end
 
 -- Laad vergrendelingsstatus bij opstarten
 local locked = loadLockStatus()
-print("Begin status van turtle (na opstarten): " .. tostring(locked))
-
--- Zorg ervoor dat rednet opnieuw wordt geopend bij opstarten
-if not rednet.isOpen("left") then
-    rednet.open("left")
-end
 
 -- Start de rednet en keyboard luisteraars
 parallel.waitForAll(
