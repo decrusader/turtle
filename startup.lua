@@ -11,6 +11,11 @@ local locked = false
 
 -- Voer een programma in de achtergrond uit
 local function runProgramAsync(name)
+    if locked then
+        print("Turtle is vergrendeld en kan geen programma uitvoeren.")
+        return
+    end
+
     parallel.waitForAny(function()
         local success, err = pcall(function()
             shell.run(name)
@@ -31,9 +36,11 @@ local function listenForRednet()
 
         elseif msg == "stop" then
             locked = true
+            print("Turtle is nu vergrendeld. Geen programma's kunnen meer worden uitgevoerd.")
 
         elseif msg == "go" then
             locked = false
+            print("Turtle is ontgrendeld en kan weer programma's uitvoeren.")
 
         elseif string.sub(msg, 1, 7) == "delete:" then
             local name = string.sub(msg, 8)
@@ -51,11 +58,15 @@ local function listenForRednet()
 
                 if not locked then
                     runProgramAsync(name)
+                else
+                    print("Turtle is vergrendeld, kan het programma niet uitvoeren.")
                 end
             end
 
         elseif not locked then
             runProgramAsync(msg)
+        else
+            print("Turtle is vergrendeld, kan geen programma uitvoeren.")
         end
     end
 end
@@ -70,6 +81,8 @@ local function listenForKeyboard()
 
         if not locked and input ~= "" then
             runProgramAsync(input)
+        elseif locked then
+            print("Turtle is vergrendeld, kan geen programma uitvoeren.")
         end
     end
 end
