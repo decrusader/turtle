@@ -7,7 +7,27 @@ end
 -- Open rednet via linker modem
 rednet.open("left")
 
-local locked = false
+-- Functie om de vergrendelingsstatus op te slaan in een bestand
+local function saveLockStatus(status)
+    local file = fs.open("locked_status.txt", "w")
+    file.write(textutils.serialize(status))  -- Sla de status op als tekst
+    file.close()
+end
+
+-- Functie om de vergrendelingsstatus in te lezen van een bestand
+local function loadLockStatus()
+    if fs.exists("locked_status.txt") then
+        local file = fs.open("locked_status.txt", "r")
+        local data = file.readAll()
+        file.close()
+        return textutils.unserialize(data)  -- Zet de opgeslagen tekst om in een boolean
+    else
+        return false  -- Als er geen bestand is, gaan we ervan uit dat de turtle niet vergrendeld is
+    end
+end
+
+-- Laad de status van de vergrendeling bij het opstarten
+local locked = loadLockStatus()
 
 -- Voer een programma in de achtergrond uit
 local function runProgramAsync(name)
@@ -36,10 +56,12 @@ local function listenForRednet()
 
         elseif msg == "stop" then
             locked = true
+            saveLockStatus(locked)  -- Sla de vergrendelingsstatus op
             print("Turtle is nu vergrendeld. Geen programma's kunnen meer worden uitgevoerd.")
 
         elseif msg == "go" then
             locked = false
+            saveLockStatus(locked)  -- Sla de vergrendelingsstatus op
             print("Turtle is ontgrendeld en kan weer programma's uitvoeren.")
 
         elseif string.sub(msg, 1, 7) == "delete:" then
