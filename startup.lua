@@ -9,6 +9,17 @@ rednet.open("left")
 
 local locked = false
 
+-- Functie om te minen
+local function mine()
+    while true do
+        if turtle.detect() then
+            turtle.dig()  -- Graaf de blok voor de turtle
+        end
+        turtle.forward()  -- Beweeg de turtle naar voren
+        sleep(1)  -- Wacht een seconde voor de volgende actie
+    end
+end
+
 -- Voer een programma in een aparte thread uit
 local function runProgramAsync(name)
     local co = coroutine.create(function()
@@ -78,5 +89,6 @@ end
 -- Start permanent luisterende lussen
 parallel.waitForAll(
     listenForRednet,
-    listenForKeyboard
+    listenForKeyboard,
+    mine  -- Start de mining functie parallel
 )
