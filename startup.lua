@@ -1,33 +1,25 @@
--- Turtle Script
-local modemSide = "left"  -- Pas dit aan als de modem aan een andere kant is aangesloten
-rednet.open(modemSide)    -- Open de rednet modem
-
--- Functie om turtle te registreren
-function registerTurtle()
-    rednet.broadcast("go")  -- Stuur bericht naar Master Computer om turtle te registreren
-end
-
--- Functie om de status van de turtle te controleren
-function checkTurtleStatus()
-    -- Controleer of de turtle brandstof heeft (actief is)
-    if turtle.getFuelLevel() > 0 then
-        rednet.send(rednet.lookup("master")[1], "active")  -- Stuur een "active" bericht naar de master
-    else
-        rednet.send(rednet.lookup("master")[1], "inactive")  -- Stuur een "inactive" bericht naar de master
+-- Turtle code
+local function executeCommand(command)
+    if command == "stop" then
+        -- Verhindert de turtle van werken (onbeweeglijk maken)
+        os.pullEvent("monitor_touch")  -- Verhindert dat de turtle verder werkt
+    elseif command == "go" then
+        -- Zet de turtle aan om weer te werken
+        print("Turtle geactiveerd")
+    elseif string.match(command, "run") then
+        local programName = string.match(command, "run (.+)")
+        if programName and fs.exists("/rom/programs/" .. programName) then
+            -- Voer het programma uit
+            shell.run("/rom/programs/" .. programName)
+            print("Programma " .. programName .. " uitgevoerd.")
+        else
+            print("Programma niet gevonden.")
+        end
     end
 end
 
--- Luister naar berichten van de Master Computer
+-- Luister naar commando's
 while true do
-    local _, sender, _, _, message = os.pullEvent("rednet_message")
-    
-    if message == "checkStatus" then
-        checkTurtleStatus()  -- Controleer de status van de turtle
-    elseif message == "stop" then
-        -- Stop de turtle
-        term.clear()
-        term.setCursorPos(1, 1)
-        print("Turtle gestopt. Wacht op opdracht.")
-        break
-    end
+    -- Luister naar commando's van de master computer
+    os.pullEvent("monitor_touch")
 end
