@@ -8,20 +8,19 @@ end
 rednet.open("left")
 
 local locked = false
-local runningTasks = {}
 
--- Voer een programma in de achtergrond uit
+-- Voer een programma in een aparte thread uit
 local function runProgramAsync(name)
-    local task = function()
+    local co = coroutine.create(function()
         local success, err = pcall(function()
             shell.run(name)
         end)
         if not success then
             print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
         end
-    end
-
-    table.insert(runningTasks, task)
+    end)
+    -- Start als coroutine in parallel
+    parallel.waitForAny(function() coroutine.resume(co) end)
 end
 
 -- Verwerk rednet berichten
@@ -77,13 +76,8 @@ local function listenForKeyboard()
     end
 end
 
--- Combineer rednet luisteren, keyboard en actieve taken
-while true do
-    local tasks = {listenForRednet, listenForKeyboard}
-
-    for _, task in ipairs(runningTasks) do
-        table.insert(tasks, task)
-    end
-
-    parallel.waitForAny(table.unpack(tasks))
-end
+-- Start permanent luisterende lussen
+parallel.waitForAll(
+    listenForRednet,
+    listenForKeyboard
+)
