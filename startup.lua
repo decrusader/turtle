@@ -1,4 +1,4 @@
--- Controleer of modem links zit
+-- Controleer of modem aan de linkerkant zit
 if not peripheral.getType("left") or peripheral.getType("left") ~= "modem" then
     print("Geen modem aan de linkerkant gevonden. Programma gestopt.")
     return
@@ -7,14 +7,7 @@ end
 -- Open rednet via linker modem
 rednet.open("left")
 
--- Functie om de vergrendelingsstatus op te slaan in een bestand
-local function saveLockStatus(status)
-    local file = fs.open("locked_status.txt", "w")
-    file.write(textutils.serialize(status))  -- Sla de status op als tekst
-    file.close()
-end
-
--- Functie om de vergrendelingsstatus in te lezen van een bestand
+-- Laad de vergrendelingsstatus uit bestand
 local function loadLockStatus()
     if fs.exists("locked_status.txt") then
         local file = fs.open("locked_status.txt", "r")
@@ -22,61 +15,57 @@ local function loadLockStatus()
         file.close()
         return textutils.unserialize(data)  -- Zet de opgeslagen tekst om in een boolean
     else
-        return false  -- Als er geen bestand is, gaan we ervan uit dat de turtle niet vergrendeld is
+        return false  -- Als er geen bestand is, is de turtle niet vergrendeld
     end
 end
 
--- Laad de status van de vergrendeling bij het opstarten
-local locked = loadLockStatus()
+-- Sla de vergrendelingsstatus op in een bestand
+local function saveLockStatus(status)
+    local file = fs.open("locked_status.txt", "w")
+    file.write(textutils.serialize(status))
+    file.close()
+end
 
--- Functie om de turtle volledig te blokkeren
+-- Vergrendel de turtle
 local function blockTurtle()
     while locked do
-        os.sleep(1)  -- Wacht 1 seconde tussen de checks, zodat de turtle niets kan doen.
+        os.sleep(1)  -- Wacht 1 seconde tussen de checks
     end
 end
 
--- Voer een programma in de achtergrond uit
+-- Voer programma's uit
 local function runProgramAsync(name)
     if locked then
         print("Turtle is vergrendeld en kan geen programma uitvoeren.")
         return
     end
-
-    parallel.waitForAny(function()
-        local success, err = pcall(function()
-            shell.run(name)
-        end)
-        if not success then
-            print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
-        end
-    end)
+    local success, err = pcall(function() shell.run(name) end)
+    if not success then
+        print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
+    end
 end
 
 -- Verwerk rednet berichten
 local function listenForRednet()
     while true do
-        -- Als turtle vergrendeld is, stop dan de uitvoering van deze functie
-        blockTurtle()
-
         local id, msg = rednet.receive()
 
-        print("Bericht ontvangen: " .. tostring(msg))  -- Debugging: toon welk bericht we ontvangen
+        print("Bericht ontvangen: " .. tostring(msg))
 
         if msg == "ping" then
             rednet.send(id, "pong")
 
         elseif msg == "stop" then
             locked = true
-            saveLockStatus(locked)  -- Sla de vergrendelingsstatus op
+            saveLockStatus(locked)
             print("Turtle is nu vergrendeld. Geen programma's kunnen meer worden uitgevoerd.")
             print("Turtle blokkeert nu en sluit automatisch af.")
-            os.sleep(3)  -- Wacht een paar seconden om het bericht te tonen
-            os.shutdown()  -- Stop de turtle automatisch na het blokkeren
+            os.sleep(3)
+            os.shutdown()
 
         elseif msg == "go" then
             locked = false
-            saveLockStatus(locked)  -- Sla de vergrendelingsstatus op
+            saveLockStatus(locked)
             print("Turtle is ontgrendeld en kan weer programma's uitvoeren.")
 
         elseif string.sub(msg, 1, 7) == "delete:" then
@@ -92,7 +81,6 @@ local function listenForRednet()
                 local file = fs.open(name, "w")
                 file.write(code)
                 file.close()
-
                 if not locked then
                     runProgramAsync(name)
                 else
@@ -108,10 +96,9 @@ local function listenForRednet()
     end
 end
 
--- Laat de gebruiker lokaal iets intypen en uitvoeren
+-- Laat de gebruiker lokaal een programma uitvoeren
 local function listenForKeyboard()
     while true do
-        -- Als turtle vergrendeld is, stop dan de uitvoering van deze functie
         blockTurtle()
 
         term.setCursorBlink(true)
@@ -119,7 +106,7 @@ local function listenForKeyboard()
         local input = read()
         term.setCursorBlink(false)
 
-        if not locked and input ~= "" then
+        if input ~= "" and not locked then
             runProgramAsync(input)
         elseif locked then
             print("Turtle is vergrendeld, kan geen programma uitvoeren.")
@@ -127,7 +114,10 @@ local function listenForKeyboard()
     end
 end
 
--- Start permanent luisterende lussen
+-- Laad vergrendelingsstatus bij opstarten
+local locked = loadLockStatus()
+
+-- Start de rednet en keyboard luisteraars
 parallel.waitForAll(
     listenForRednet,
     listenForKeyboard
