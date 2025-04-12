@@ -7,9 +7,9 @@ local programName = "turtleProgram"  -- Het programma dat naar de turtles wordt 
 
 -- Functie om het aantal actieve turtles weer te geven
 function showUI()
-    term.clear()
+    term.clear()  -- Wis het scherm
     term.setCursorPos(1, 1)
-    print("Aantal actieve turtles: " .. #activeTurtles)
+    print("Aantal actieve turtles: " .. #activeTurtles)  -- Toon het aantal actieve turtles
 end
 
 -- Functie om turtles te stoppen
@@ -45,6 +45,22 @@ function sendProgramToTurtles()
     end
 end
 
+-- Functie om alles te stoppen en de actieve lijst te wissen
+function clearTurtles()
+    for _, id in ipairs(activeTurtles) do
+        rednet.send(id, "stop")
+    end
+    activeTurtles = {}  -- Leeg de lijst van actieve turtles
+    showUI()  -- Update de UI na het wissen
+end
+
+-- Functie om het scherm van de master computer leeg te maken
+function clearScreen()
+    term.clear()  -- Wis het scherm
+    term.setCursorPos(1, 1)  -- Zet de cursor naar de bovenkant van het scherm
+    print("Scherm gewist!")  -- Optioneel, je kunt hier een bericht tonen
+end
+
 -- Commando-ontvangst loop
 function handleCommands()
     while true do
@@ -62,10 +78,17 @@ function handleCommands()
             elseif msg == "verstuur/" .. programName then
                 -- Het programma wordt geüpdatet en naar de turtles gestuurd
                 sendProgramToTurtles()
+            elseif msg == "clear" then
+                -- Wis het scherm van de master computer
+                clearScreen()
+            elseif msg == "clearTurtles" then
+                -- Stop alles en wis de actieve turtles
+                clearTurtles()
             end
         end
     end
 end
 
--- Start de commando-handler
+-- Toon de UI voor het eerst en start de commando-handler
+showUI()
 handleCommands()
