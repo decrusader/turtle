@@ -13,10 +13,8 @@ local function loadLockStatus()
         local file = fs.open("locked_status.txt", "r")
         local data = file.readAll()
         file.close()
-        print("Vergrendelingsstatus geladen: " .. data)
         return textutils.unserialize(data)  -- Zet de opgeslagen tekst om in een boolean
     else
-        print("Geen vergrendelingsbestand gevonden, standaard status is false.")
         return false  -- Geen vergrendelingsbestand betekent standaard niet vergrendeld
     end
 end
@@ -26,7 +24,6 @@ local function saveLockStatus(status)
     local file = fs.open("locked_status.txt", "w")
     file.write(textutils.serialize(status))
     file.close()
-    print("Vergrendelingsstatus opgeslagen: " .. tostring(status))
 end
 
 -- Vergrendel de turtle (blokkeren voor de uitvoering van commando's)
@@ -62,12 +59,10 @@ end
 local function listenForRednet()
     while true do
         local id, msg = rednet.receive()  -- Wacht op berichten
-        print("Ontvangen bericht van id " .. id .. ": " .. msg)
 
-        -- Ping-bericht: Beantwoord met 'pong', maar beïnvloedt geen vergrendelingsstatus
+        -- Ping-bericht: Beantwoord met 'pong'
         if msg == "ping" then
             rednet.send(id, "pong")
-            print("Ping ontvangen van id " .. id)
 
         -- Stop-bericht: Vergrendel de turtle
         elseif msg == "stop" then
