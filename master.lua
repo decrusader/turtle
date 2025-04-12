@@ -31,6 +31,24 @@ function startTurtle(turtleID)
     showUI()  -- Update de UI met het nieuwe aantal actieve turtles
 end
 
+-- Functie om alle turtles op te vragen en hun status te controleren
+function checkTurtleStatus()
+    local turtles = rednet.lookup("turtle", nil)  -- Zoek naar alle turtles op het netwerk
+    for _, turtleID in ipairs(turtles) do
+        -- Stuur een bericht naar de turtle om zijn brandstofstatus te controleren
+        rednet.send(turtleID, "checkStatus")
+        local _, status = rednet.receive()
+        
+        if status == "active" then
+            -- Turtle heeft brandstof en is dus actief
+            startTurtle(turtleID)
+        else
+            -- Turtle heeft geen brandstof en is dus niet actief
+            stopTurtle(turtleID)
+        end
+    end
+end
+
 -- Functie om een programma naar de turtles te sturen
 function sendProgramToTurtles()
     local program = fs.open(programName, "r")
@@ -69,8 +87,6 @@ function handleCommands()
         if event == "rednet_message" then
             local msg, sender = param, sender
             
-            print("Ontvangen bericht van turtle:", msg)  -- Debugging, toont het bericht dat ontvangen wordt
-            
             if msg == "stop" then
                 -- Verwijder turtle uit actieve lijst
                 stopTurtle(sender)
@@ -93,4 +109,9 @@ end
 
 -- Toon de UI voor het eerst en start de commando-handler
 showUI()
+
+-- Roep de functie aan om de status van alle turtles te controleren
+checkTurtleStatus()
+
+-- Start de commando-handler
 handleCommands()
