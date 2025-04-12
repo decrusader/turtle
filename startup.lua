@@ -75,7 +75,7 @@ local function listenForKeyboard()
     end
 end
 
--- Start permanente luisterende lussen
+-- Start permanent luisterende lussen
 parallel.waitForAll(
     listenForRednet,
     listenForKeyboard
