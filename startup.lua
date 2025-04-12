@@ -35,26 +35,17 @@ end
 
 -- Voer programma's uit
 local function runProgram(name)
-    if locked then
-        return
-    end
+    if locked then return end  -- Voorkom uitvoeren als de turtle is vergrendeld
 
-    -- Zeg tegen de turtle dat hij aan het draaien is, dit voorkomt "spammen" van stop commando's.
     print("Programma " .. name .. " wordt uitgevoerd...")
-    
     local success, err = pcall(function()
-        -- Controleer continu of de turtle geblokkeerd is en stop met uitvoeren
-        -- Gebruik gewoon shell.run om het programma uit te voeren
-        if not locked then
-            shell.run(name)
-        end
+        shell.run(name)
     end)
 
     if not success then
         print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
     end
 
-    -- Nadat het programma klaar is, kan de turtle weer reageren op stop commando's.
     print("Programma " .. name .. " is afgerond.")
 end
 
@@ -67,7 +58,6 @@ local function listenForRednet()
             rednet.send(id, "pong")
 
         elseif msg == "stop" then
-            -- Alleen stop uitvoeren als turtle niet bezig is met een programma
             if not locked then
                 locked = true
                 saveLockStatus(locked)
@@ -75,26 +65,26 @@ local function listenForRednet()
             end
 
         elseif msg == "go" then
-            -- Ontgrendel de turtle
             if locked then
                 locked = false
                 saveLockStatus(locked)
                 print("Turtle is ontgrendeld.")
             end
 
-        elseif string.sub(msg, 1, 7) == "delete:" then
-            local name = string.sub(msg, 8)
+        elseif msg:sub(1, 7) == "delete:" then
+            local name = msg:sub(8)
             if fs.exists(name) then
                 fs.delete(name)
             end
 
-        elseif string.sub(msg, 1, 8) == "program:" then
-            local rest = string.sub(msg, 9)
+        elseif msg:sub(1, 8) == "program:" then
+            local rest = msg:sub(9)
             local name, code = rest:match("([^:]+):(.+)")
             if name and code then
                 local file = fs.open(name, "w")
                 file.write(code)
                 file.close()
+
                 if not locked then
                     runProgram(name)
                 end
@@ -122,7 +112,7 @@ local function listenForKeyboard()
     end
 end
 
--- Laad vergrendelingsstatus bij opstarten
+-- Laad de vergrendelingsstatus bij opstarten
 local locked = loadLockStatus()
 
 -- Start de rednet en keyboard luisteraars
