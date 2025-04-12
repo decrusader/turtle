@@ -7,7 +7,7 @@ end
 -- Open rednet via linker modem
 rednet.open("left")
 
--- Laad de vergrendelingsstatus uit bestand
+-- Laad de vergrendelingsstatus uit bestand bij opstarten
 local function loadLockStatus()
     if fs.exists("locked_status.txt") then
         local file = fs.open("locked_status.txt", "r")
@@ -60,14 +60,14 @@ local function listenForRednet()
         elseif msg == "stop" then
             if not locked then
                 locked = true
-                saveLockStatus(locked)
+                saveLockStatus(locked)  -- Directe opslaan van status
                 print("Turtle is nu geblokkeerd.")
             end
 
         elseif msg == "go" then
             if locked then
                 locked = false
-                saveLockStatus(locked)
+                saveLockStatus(locked)  -- Directe opslaan van status
                 print("Turtle is ontgrendeld.")
             end
 
