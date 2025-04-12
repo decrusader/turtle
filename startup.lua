@@ -41,11 +41,9 @@ local function runProgram(name)
 
     local success, err = pcall(function()
         -- Controleer continu of de turtle geblokkeerd is en stop met uitvoeren
-        for line in io.lines(name) do
-            if locked then
-                return
-            end
-            shell.run(line)  -- Voer elke regel uit
+        -- Gebruik gewoon shell.run om het programma uit te voeren
+        if not locked then
+            shell.run(name)
         end
     end)
 
