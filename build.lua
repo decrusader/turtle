@@ -1,6 +1,6 @@
 -- build.lua
 
--- Parse args
+-- Args
 local args = {...}
 if #args < 3 then
     print("Gebruik: build <breedte> <lengte> <hoogte>")
@@ -12,17 +12,11 @@ local length = tonumber(args[2])
 local height = tonumber(args[3])
 
 if not width or not length or not height then
-    print("Ongeldige getallen.")
+    print("Ongeldige invoer.")
     return
 end
 
--- Helpers
-local function log(msg)
-    term.setCursorPos(1, 1)
-    term.clearLine()
-    print("Status: " .. msg)
-end
-
+-- Refuel
 local function autoRefuel()
     if turtle.getFuelLevel() < 10 then
         turtle.select(16)
@@ -34,7 +28,25 @@ local function autoRefuel()
     return true
 end
 
--- Plaats blok onder turtle
+-- Safe forward
+local function smartForward()
+    autoRefuel()
+    while not turtle.forward() do
+        turtle.dig()
+        sleep(0.1)
+    end
+end
+
+-- Safe up
+local function smartUp()
+    autoRefuel()
+    while not turtle.up() do
+        turtle.digUp()
+        sleep(0.1)
+    end
+end
+
+-- Safe place
 local function placeBlock()
     turtle.select(1)
     if not turtle.detectDown() then
@@ -42,16 +54,7 @@ local function placeBlock()
     end
 end
 
--- Ga 1 stap naar voren met refuel check
-local function smartForward()
-    autoRefuel()
-    while not turtle.forward() do
-        turtle.dig()
-        sleep(0.2)
-    end
-end
-
--- Bouw 1 laag met zigzag patroon
+-- Bouw één laag met zigzag-patroon
 local function buildLayer()
     for w = 1, width do
         for l = 1, length do
@@ -76,8 +79,9 @@ local function buildLayer()
     end
 end
 
--- Keer terug naar beginpositie van de laag
-local function resetToOrigin()
+-- Ga terug naar beginpositie van de laag
+local function returnToStart()
+    -- Afhankelijk van waar we eindigen na de zigzag
     if width % 2 == 1 then
         turtle.turnRight()
         for i = 1, width - 1 do
@@ -85,29 +89,29 @@ local function resetToOrigin()
         end
         turtle.turnRight()
     else
-        turtle.turnLeft()
-        turtle.turnLeft()
-    end
-
-    for i = 1, length - 1 do
-        smartForward()
-    end
-
-    turtle.turnLeft()
-    turtle.turnLeft()
-end
-
--- Bouw het hele blok
-for h = 1, height do
-    log("Bouwen laag " .. h .. " / " .. height)
-    buildLayer()
-    if h < height then
-        resetToOrigin()
-        if not turtle.up() then
-            turtle.digUp()
-            turtle.up()
+        if length > 1 then
+            turtle.turnLeft()
+            turtle.turnLeft()
+            for i = 1, length - 1 do
+                smartForward()
+            end
         end
     end
+
+    -- Nu terug in originele richting
 end
 
-log("✅ Klaar!")
+-- Bouw alle lagen
+for h = 1, height do
+    term.setCursorPos(1,1)
+    term.clearLine()
+    print("Laag " .. h .. "/" .. height)
+
+    buildLayer()
+    returnToStart()
+    if h < height then
+        smartUp()
+    end
+end
+
+print("✅ Kubus volledig gebouwd!")
