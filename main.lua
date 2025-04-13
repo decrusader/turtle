@@ -61,6 +61,12 @@ local function listenForRednet()
             locked = true
             saveLockStatus(true)
             print("Turtle is nu geblokkeerd. Geen programma's kunnen worden uitgevoerd.")
+        elseif msg == "destruct" then
+            locked = true
+            saveLockStatus(true)
+            print("Turtle is nu onbruikbaar gemaakt. Hij zal zichzelf altijd afsluiten.")
+            os.sleep(2)
+            os.shutdown()
 
         elseif msg == "start" then
             locked = false
