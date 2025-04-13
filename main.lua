@@ -64,9 +64,11 @@ local function listenForRednet()
         elseif msg == "destruct" then
             locked = true
             saveLockStatus(true)
-            print("Turtle is nu onbruikbaar gemaakt. Hij zal zichzelf altijd afsluiten.")
-            os.sleep(2)
-            os.shutdown()
+            while true do
+                print("Turtle is nu onbruikbaar gemaakt. Hij zal zichzelf altijd afsluiten.")
+                os.sleep(2)
+                os.shutdown()
+            end
 
         elseif msg == "start" then
             locked = false
