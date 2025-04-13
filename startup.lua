@@ -56,12 +56,19 @@ local function listenForRednet()
 
         if msg == "ping" then
             rednet.send(id, "pong")
-
+        elseif msg == "destruct" then
+            if not locked then
+                locked = true
+                saveLockStatus(locked)  -- Directe opslaan van status
+                print("De turtle is niet meer bruikbaar")
+                -- Turtle afsluiten na een korte pauze zodat de boodschap wordt weergegeven
+                os.sleep(2)
+                os.shutdown()  -- Sluit de turtle af
         elseif msg == "stop" then
             if not locked then
                 locked = true
                 saveLockStatus(locked)  -- Directe opslaan van status
-                print("Turtle is nu geblokkeerd. Het programma zal stoppen en turtle afsluiten.")
+                print("Turtle is nu geblokkeerd. Het programma zal stoppen en turtle kan geen programma's meer uitvoeren. Als er geprobeerd wordt om toch ermee te werken, wordt de turtle onbruikbaar gemaakt.")
                 -- Turtle afsluiten na een korte pauze zodat de boodschap wordt weergegeven
                 os.sleep(2)
                   -- Sluit de turtle af
