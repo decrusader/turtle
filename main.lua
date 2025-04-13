@@ -90,9 +90,7 @@ local function listenForRednet()
                 file.write(code)
                 file.close()
                 print("Programma '" .. name .. "' opgeslagen.")
-                if not locked then
-                    runProgram(name)
-                end
+                
             end
 
         elseif not locked then
