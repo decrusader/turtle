@@ -10,6 +10,15 @@ rednet.open("left")
 -- Lijst van actieve turtles
 local turtles = {}
 
+-- Tel aantal turtles
+local function countTurtles()
+    local count = 0
+    for _ in pairs(turtles) do
+        count = count + 1
+    end
+    return count
+end
+
 -- Ping alle turtles en vraag status
 local function pingTurtles()
     turtles = {}
@@ -30,11 +39,7 @@ local function drawUI()
     term.setCursorPos(1, 1)
     print("Master Controlepaneel")
     print("----------------------")
-    print("Aantal actieve turtles: " .. tostring(#(function()
-        local count = 0
-        for _ in pairs(turtles) do count = count + 1 end
-        return count
-    end)()))
+    print("Aantal actieve turtles: " .. countTurtles())
     print("")
     print("[1] Stop turtles (blokkeren)")
     print("[2] Start turtles (ontgrendelen)")
