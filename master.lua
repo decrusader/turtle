@@ -14,6 +14,7 @@ local updateInterval = 2  -- seconden
 -- Telt aantal actieve turtles
 local function countTurtles()
     local c = 0
+    print(pairs(turtles))
     for _ in pairs(turtles) do
         c = c + 1
     end
