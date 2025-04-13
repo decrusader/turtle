@@ -24,7 +24,7 @@ end
 -- Vraagt actieve turtles om zich te melden
 local function getActiveTurtles()
     turtles = {}
-    rednet.broadcast("check")
+    rednet.broadcast("ping")
     local timer = os.startTimer(1.5)
 
     while true do
