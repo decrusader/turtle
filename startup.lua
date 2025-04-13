@@ -7,7 +7,7 @@ print("mine")
 while true do
     if fs.exists("main.lua") then
         local ok, err = pcall(function()
-            shell.run("main.lua"))
+            shell.run("main.lua")
         end)
 
         if not ok then
