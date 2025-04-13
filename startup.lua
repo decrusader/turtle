@@ -112,7 +112,6 @@ end
 -- Laat de gebruiker lokaal een programma uitvoeren
 local function listenForKeyboard()
     while true do
-        blockTurtle()
 
         term.setCursorBlink(true)
         io.write("> ")
@@ -130,8 +129,7 @@ local locked = loadLockStatus()
 
 -- Check of de turtle geblokkeerd is bij opstarten en sluit af als dat nodig is
 if locked then
-    print("Turtle is geblokkeerd en kan niet worden gebruikt.")
-    print("De turtle zal zichzelf afsluiten.")
+    print("Turtle is nu geblokkeerd. Het programma zal stoppen en turtle kan geen programma's meer uitvoeren. Als er geprobeerd wordt om toch ermee te werken, wordt de turtle onbruikbaar gemaakt.")
     os.sleep(2)  -- Wacht een moment om de boodschap te tonen
 end
 
