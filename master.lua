@@ -4,13 +4,14 @@ if peripheral.getType("left") ~= "modem" then
     return
 end
 
+-- Open rednet op de linkerkant
 rednet.open("left")
 
 local turtles = {}
 local lastUpdate = 0
 local updateInterval = 2  -- seconden
 
--- Tel actieve turtles
+-- Telt aantal actieve turtles
 local function countTurtles()
     local c = 0
     for _ in pairs(turtles) do
@@ -19,23 +20,23 @@ local function countTurtles()
     return c
 end
 
--- Functie om actieve turtles op te halen
+-- Vraagt actieve turtles om zich te melden
 local function getActiveTurtles()
     turtles = {}
     rednet.broadcast("check")
     local timer = os.startTimer(1.5)
 
     while true do
-        local event, id, msg = os.pullEvent()
-        if event == "rednet_message" and msg == "pong" then
-            turtles[id] = true
-        elseif event == "timer" and id == timer then
+        local event, p1, p2 = os.pullEvent()
+        if event == "rednet_message" and p2 == "pong" then
+            turtles[p1] = true
+        elseif event == "timer" and p1 == timer then
             break
         end
     end
 end
 
--- UI tekenen
+-- Tekent de gebruikersinterface
 local function drawUI()
     term.setBackgroundColor(colors.black)
     term.setTextColor(colors.white)
@@ -56,7 +57,7 @@ local function drawUI()
     io.write("master> ")
 end
 
--- Programma verzenden
+-- Stuurt een programma naar alle turtles
 local function sendProgramToTurtles(filename)
     if not fs.exists(filename) then
         print("\nBestand '" .. filename .. "' bestaat niet.")
@@ -74,7 +75,7 @@ local function sendProgramToTurtles(filename)
     print("\nProgramma '" .. filename .. "' verzonden naar " .. tostring(countTurtles()) .. " turtle(s).")
 end
 
--- Input verwerken
+-- Verwerkt gebruiker invoer
 local function handleInput(input)
     local args = {}
     for word in input:gmatch("%S+") do
@@ -106,7 +107,7 @@ end
 
 -- Hoofdlus
 while true do
-    -- Update lijst met actieve turtles elke X seconden
+    -- Update actieve turtles elke paar seconden
     if os.clock() - lastUpdate > updateInterval then
         getActiveTurtles()
         lastUpdate = os.clock()
