@@ -3,7 +3,7 @@ term.clear()
 term.setCursorPos(1, 1)
 print("programmas om uit te kiezen:")
 print("---------------------------------------")
-print("mine")
+print("mine                     known no error")
 print("---------------------------------------")
 
 while true do
