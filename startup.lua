@@ -64,7 +64,7 @@ local function listenForRednet()
                 print("Turtle is nu geblokkeerd. Het programma zal stoppen en turtle afsluiten.")
                 -- Turtle afsluiten na een korte pauze zodat de boodschap wordt weergegeven
                 os.sleep(2)
-                os.shutdown()  -- Sluit de turtle af
+                  -- Sluit de turtle af
 
             end
 
