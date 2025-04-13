@@ -43,7 +43,7 @@ end
 -- Functie voor interactie met de gebruiker
 local function userInput()
     while true do
-        print("\nVoer een commando in: stop, start, send <programma naam> <code>")
+        print("\nVoer een commando in: stop, start, send <programma naam> <code>, add id <id>")
         io.write("> ")
         local input = read()
 
@@ -56,6 +56,8 @@ local function userInput()
             startTurtle()  -- Verzend start-commando naar de turtle
         elseif command == "send" and arg1 and arg2 then
             sendProgramToTurtle(arg1, arg2)  -- Verzend programma naar de turtle
+        elseif command == "add id" and arg1 then
+            addID(arg1) -- Voeg id toe
         else
             print("Ongeldig commando.")
         end
