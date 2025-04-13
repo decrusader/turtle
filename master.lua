@@ -4,13 +4,15 @@ if not peripheral.getType("left") or peripheral.getType("left") ~= "modem" then
     return
 end
 -- Lijst van id's van alle verkochte turtles
-ids = {}
+
 -- Open rednet via de linker modem
 rednet.open("left")
 
 -- Functie voor verkochte turtle id's toe te voegen
 local function addID(id)
-    ids.insert(id)
+    local file = fs.open("ids.txt", "a")
+    file.append("\n"..id)
+    file.close()
     print("Id nummer "..id.." is toegevoed")
 -- Functie om een bericht naar de turtle te sturen
 local function sendMessageToTurtle(msg)
