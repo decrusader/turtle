@@ -1,7 +1,7 @@
 -- startup.lua
 term.clear()
 print("programmas om uit te kiezen:")
-print("-----------------------------------------------------")
+print("---------------------------------------")
 print("mine")
 
 while true do
