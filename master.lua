@@ -4,84 +4,83 @@ if peripheral.getType("left") ~= "modem" then
     return
 end
 
--- Open modem
+-- Open rednet op de linker modem
 rednet.open("left")
 
--- Lijst van actieve turtles
-local turtles = {}
+-- Verzamel actieve turtles
+local function getActiveTurtles(timeout)
+    local turtles = {}
+    rednet.broadcast("check")  -- Vraag alle turtles om zich te melden
+    local timer = os.startTimer(timeout or 2)
 
--- Tel aantal turtles
-local function countTurtles()
-    local count = 0
-    for _ in pairs(turtles) do
-        count = count + 1
-    end
-    return count
-end
+    while true do
+        local event, p1, p2 = os.pullEvent()
 
--- Ping alle turtles en vraag status
-local function pingTurtles()
-    turtles = {}
-    rednet.broadcast("ping")
-    local start = os.clock()
+        if event == "rednet_message" and type(p2) == "string" then
+            if p2 == "pong" then
+                turtles[p1] = true
+            end
 
-    while os.clock() - start < 2 do
-        local id, msg = rednet.receive(0.2)
-        if msg == "pong" then
-            turtles[id] = true
+        elseif event == "timer" and p1 == timer then
+            break
         end
     end
+
+    return turtles
 end
 
--- UI scherm
-local function drawUI()
-    term.clear()
-    term.setCursorPos(1, 1)
-    print("Master Controlepaneel")
-    print("----------------------")
-    print("Aantal actieve turtles: " .. countTurtles())
-    print("")
-    print("[1] Stop turtles (blokkeren)")
-    print("[2] Start turtles (ontgrendelen)")
-    print("[3] Ping opnieuw")
-    print("[4] Verlaat programma")
-    print("")
-    io.write("Kies optie: ")
-end
-
--- Stuur commando naar alle turtles
-local function broadcastCommand(cmd)
-    for id in pairs(turtles) do
-        rednet.send(id, cmd)
+-- Verstuur een programma naar alle actieve turtles
+local function sendProgramToTurtles(filename)
+    if not fs.exists(filename) then
+        print("Bestand '" .. filename .. "' bestaat niet.")
+        return
     end
+
+    local file = fs.open(filename, "r")
+    local content = file.readAll()
+    file.close()
+
+    local turtles = getActiveTurtles()
+
+    local count = 0
+    for id in pairs(turtles) do
+        rednet.send(id, "program:" .. filename .. ":" .. content)
+        count = count + 1
+    end
+
+    print("Programma '" .. filename .. "' verzonden naar " .. count .. " turtle(s).")
 end
 
--- Hoofdloop
+-- Simpele menu-loop
 while true do
-    pingTurtles()
-    drawUI()
-    
+    term.setCursorBlink(true)
+    io.write("master> ")
     local input = read()
-    if input == "1" then
-        broadcastCommand("stop")
-        print("Stop commando verzonden.")
-        os.sleep(1)
+    term.setCursorBlink(false)
 
-    elseif input == "2" then
-        broadcastCommand("start")
-        print("Start commando verzonden.")
-        os.sleep(1)
+    local args = {}
+    for word in input:gmatch("%S+") do
+        table.insert(args, word)
+    end
 
-    elseif input == "3" then
-        print("Opnieuw pingen...")
-        os.sleep(1)
+    local cmd = args[1]
 
-    elseif input == "4" then
+    if cmd == "stop" or cmd == "start" or cmd == "destruct" then
+        rednet.broadcast(cmd)
+        print("Commando '" .. cmd .. "' verzonden.")
+
+    elseif cmd == "delete" and args[2] then
+        rednet.broadcast("delete:" .. args[2])
+        print("Verwijdercommando voor '" .. args[2] .. "' verzonden.")
+
+    elseif cmd == "ping" and args[2] then
+        sendProgramToTurtles(args[2])
+
+    elseif cmd == "exit" then
         print("Programma afgesloten.")
         break
 
     else
-        print("Ongeldige keuze.")
-        os.sleep(1)
+        print("Onbekend commando. Gebruik: start | stop | destruct | delete <bestand> | ping <bestand> | exit")
     end
 end
