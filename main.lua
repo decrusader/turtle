@@ -1,87 +1,68 @@
--- Controleer of modem aan de linkerkant zit
-if peripheral.getType("left") ~= "modem" then
+-- Controleer of de modem aan de rechterkant zit (modem op de turtle)
+if not peripheral.getType("left") or peripheral.getType("left") ~= "modem" then
     print("Geen modem aan de linkerkant gevonden. Programma gestopt.")
     return
 end
+-- Lijst van id's van alle verkochte turtles
 
--- Open modem
+-- Open rednet via de linker modem
 rednet.open("left")
 
--- Lijst van actieve turtles
-local turtles = {}
-
--- Tel aantal turtles
-local function countTurtles()
-    local count = 0
-    for _ in pairs(turtles) do
-        count = count + 1
-    end
-    return count
+-- Functie voor verkochte turtle id's toe te voegen
+local function addID(id)
+    local file = fs.open("ids.txt", "a")
+    file.write(id.."\n")
+    file.close()
+    print("Id nummer "..id.." is toegevoed")
+end
+-- Functie om een bericht naar de turtle te sturen
+local function sendMessageToTurtle(msg)
+    print("Verstuur bericht naar turtle: " .. msg)
+    rednet.broadcast(msg)  -- Stuur het bericht naar alle turtles via de modem
 end
 
--- Ping alle turtles en vraag status
-local function pingTurtles()
-    turtles = {}
-    rednet.broadcast("ping")
-    local start = os.clock()
+-- Functie om de turtle te stoppen
+local function stopTurtle()
+    sendMessageToTurtle("stop")  -- Stop de turtle
+    print("Turtle is geblokkeerd en wordt afgesloten...")
+end
 
-    while os.clock() - start < 2 do
-        local id, msg = rednet.receive(0.2)
-        if msg == "pong" then
-            turtles[id] = true
+-- Functie om de turtle te starten (ontgrendelen)
+local function startTurtle()
+    sendMessageToTurtle("start")  -- Start de turtle
+    print("Turtle is nu ontgrendeld en kan weer werken.")
+end
+
+-- Functie om een programma naar de turtle te sturen
+local function sendProgramToTurtle(programName, programCode)
+    local msg = "program:" .. programName .. ":" .. programCode
+    sendMessageToTurtle(msg)
+    print("Programma '" .. programName .. "' gestuurd naar turtle.")
+end
+
+-- Functie voor interactie met de gebruiker
+local function userInput()
+    while true do
+        print("\nVoer een commando in: stop, start, send <programma naam> <code>, addID <id>")
+        io.write("> ")
+        local input = read()
+
+        -- Verwerk de input van de gebruiker
+        local command, arg1, arg2 = input:match("^(%w+)%s*(%S*)%s*(.*)")
+
+        if command == "stop" then
+            stopTurtle()  -- Verzend stop-commando naar de turtle
+        elseif command == "start" then
+            startTurtle()  -- Verzend start-commando naar de turtle
+        elseif command == "send" and arg1 and arg2 then
+            sendProgramToTurtle(arg1, arg2)  -- Verzend programma naar de turtle
+        elseif command == "addID" and arg1 then
+            addID(arg1) -- Voeg id toe
+        else
+            print("Ongeldig commando.")
         end
     end
 end
 
--- UI scherm
-local function drawUI()
-    term.clear()
-    term.setCursorPos(1, 1)
-    print("Master Controlepaneel")
-    print("----------------------")
-    print("Aantal actieve turtles: " .. countTurtles())
-    print("")
-    print("[1] Stop turtles (blokkeren)")
-    print("[2] Start turtles (ontgrendelen)")
-    print("[3] Ping opnieuw")
-    print("[4] Verlaat programma")
-    print("")
-    io.write("Kies optie: ")
-end
-
--- Stuur commando naar alle turtles
-local function broadcastCommand(cmd)
-    for id in pairs(turtles) do
-        rednet.send(id, cmd)
-    end
-end
-
--- Hoofdloop
-while true do
-    pingTurtles()
-    drawUI()
-    
-    local input = read()
-    if input == "1" then
-        broadcastCommand("stop")
-        print("Stop commando verzonden.")
-        os.sleep(1)
-
-    elseif input == "2" then
-        broadcastCommand("start")
-        print("Start commando verzonden.")
-        os.sleep(1)
-
-    elseif input == "3" then
-        print("Opnieuw pingen...")
-        os.sleep(1)
-
-    elseif input == "4" then
-        print("Programma afgesloten.")
-        break
-
-    else
-        print("Ongeldige keuze.")
-        os.sleep(1)
-    end
-end
+-- Start het script en wacht op commando's van de gebruiker
+userInput()
