@@ -3,10 +3,15 @@ if not peripheral.getType("left") or peripheral.getType("left") ~= "modem" then
     print("Geen modem aan de linkerkant gevonden. Programma gestopt.")
     return
 end
-
+-- Lijst van id's van alle verkochte turtles
+ids = {}
 -- Open rednet via de linker modem
 rednet.open("left")
 
+-- Functie voor verkochte turtle id's toe te voegen
+local function addID(id)
+    ids.insert(id)
+    print("Id nummer "..id.." is toegevoed")
 -- Functie om een bericht naar de turtle te sturen
 local function sendMessageToTurtle(msg)
     print("Verstuur bericht naar turtle: " .. msg)
