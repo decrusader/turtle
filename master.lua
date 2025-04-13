@@ -10,6 +10,15 @@ local turtles = {}
 local lastUpdate = 0
 local updateInterval = 2  -- seconden
 
+-- Tel actieve turtles
+local function countTurtles()
+    local c = 0
+    for _ in pairs(turtles) do
+        c = c + 1
+    end
+    return c
+end
+
 -- Functie om actieve turtles op te halen
 local function getActiveTurtles()
     turtles = {}
@@ -17,10 +26,10 @@ local function getActiveTurtles()
     local timer = os.startTimer(1.5)
 
     while true do
-        local event, p1, p2 = os.pullEvent()
-        if event == "rednet_message" and type(p2) == "string" and p2 == "pong" then
-            turtles[p1] = true
-        elseif event == "timer" and p1 == timer then
+        local event, id, msg = os.pullEvent()
+        if event == "rednet_message" and msg == "pong" then
+            turtles[id] = true
+        elseif event == "timer" and id == timer then
             break
         end
     end
@@ -34,7 +43,7 @@ local function drawUI()
     term.setCursorPos(1, 1)
 
     print("== MASTER CONTROLLER ==")
-    print("Actieve turtles: " .. tostring(#(function() local c = 0 for _ in pairs(turtles) do c = c + 1 end return c end)()))
+    print("Actieve turtles: " .. tostring(countTurtles()))
     print("------------------------")
     print("Commando's:")
     print("  start             → ontgrendel turtles")
@@ -62,7 +71,7 @@ local function sendProgramToTurtles(filename)
         rednet.send(id, "program:" .. filename .. ":" .. content)
     end
 
-    print("\n[✓] Programma '" .. filename .. "' verzonden naar " .. tostring(#(function() local c=0 for _ in pairs(turtles) do c=c+1 end return c end)()) .. " turtle(s).")
+    print("\n[✓] Programma '" .. filename .. "' verzonden naar " .. tostring(countTurtles()) .. " turtle(s).")
 end
 
 -- Input verwerken
