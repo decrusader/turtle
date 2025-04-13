@@ -28,7 +28,7 @@ local function autoRefuel()
     return true
 end
 
--- Safe forward
+-- Bewegingsfuncties
 local function smartForward()
     autoRefuel()
     while not turtle.forward() do
@@ -37,7 +37,6 @@ local function smartForward()
     end
 end
 
--- Safe up
 local function smartUp()
     autoRefuel()
     while not turtle.up() do
@@ -46,7 +45,15 @@ local function smartUp()
     end
 end
 
--- Safe place
+local function smartDown()
+    autoRefuel()
+    while not turtle.down() do
+        turtle.digDown()
+        sleep(0.1)
+    end
+end
+
+-- Blok plaatsen
 local function placeBlock()
     turtle.select(1)
     if not turtle.detectDown() then
@@ -54,7 +61,7 @@ local function placeBlock()
     end
 end
 
--- Bouw één laag met zigzag-patroon
+-- Bouw één laag in zigzag
 local function buildLayer()
     for w = 1, width do
         for l = 1, length do
@@ -63,8 +70,6 @@ local function buildLayer()
                 smartForward()
             end
         end
-
-        -- Beweeg naar volgende rij
         if w < width then
             if w % 2 == 1 then
                 turtle.turnRight()
@@ -79,9 +84,8 @@ local function buildLayer()
     end
 end
 
--- Ga terug naar beginpositie van de laag
-local function returnToStart()
-    -- Afhankelijk van waar we eindigen na de zigzag
+-- Keer terug naar het begin van de laag
+local function returnToLayerStart()
     if width % 2 == 1 then
         turtle.turnRight()
         for i = 1, width - 1 do
@@ -97,21 +101,27 @@ local function returnToStart()
             end
         end
     end
-
-    -- Nu terug in originele richting
 end
 
--- Bouw alle lagen
+-- Bouw volledige kubus
 for h = 1, height do
     term.setCursorPos(1,1)
     term.clearLine()
     print("Laag " .. h .. "/" .. height)
 
     buildLayer()
-    returnToStart()
-    if h < height then
+    returnToLayerStart()
+    for i = 1, h do
+        smartDown()
+    end
+    for i = 1, h do
         smartUp()
     end
 end
 
-print("✅ Kubus volledig gebouwd!")
+-- Eindpositie terug op grond
+for i = 1, height do
+    smartDown()
+end
+
+print("✅ Kubus gebouwd & turtle terug op startpositie!")
