@@ -5,7 +5,7 @@ print("programmas om uit te kiezen:")
 print("")
 print("    programma     |         status     ")
 print("---------------------------------------")
-print("mine                     known no error")
+print(" mine                    no known error")
 print("---------------------------------------")
 
 while true do
