@@ -11,7 +11,7 @@ rednet.open("left")
 -- Functie voor verkochte turtle id's toe te voegen
 local function addID(id)
     local file = fs.open("ids.txt", "a")
-    file.write("\n"..id)
+    file.write(id.."\n")
     file.close()
     print("Id nummer "..id.." is toegevoed")
 end
