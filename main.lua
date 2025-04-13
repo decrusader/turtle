@@ -1,68 +1,127 @@
--- Controleer of de modem aan de linkerkant zit (modem op de turtle)
-if not peripheral.getType("left") or peripheral.getType("left") ~= "modem" then
+-- Controleer of modem aan de linkerkant zit
+if peripheral.getType("left") ~= "modem" then
     print("Geen modem aan de linkerkant gevonden. Programma gestopt.")
     return
 end
--- Lijst van id's van alle verkochte turtles
 
--- Open rednet via de linker modem
+-- Open rednet via linker modem
 rednet.open("left")
 
--- Functie voor verkochte turtle id's toe te voegen
-local function addID(id)
-    local file = fs.open("ids.txt", "a")
-    file.write(id.."\n")
+-- Bestandspad voor lock status
+local LOCK_FILE = "locked_status.txt"
+local locked = false
+
+-- Laad de vergrendelingsstatus uit bestand
+local function loadLockStatus()
+    if fs.exists(LOCK_FILE) then
+        local file = fs.open(LOCK_FILE, "r")
+        local data = file.readAll()
+        file.close()
+        return textutils.unserialize(data) or false
+    else
+        return false
+    end
+end
+
+-- Sla de vergrendelingsstatus op
+local function saveLockStatus(status)
+    local file = fs.open(LOCK_FILE, "w")
+    file.write(textutils.serialize(status))
     file.close()
-    print("Id nummer "..id.." is toegevoed")
-end
--- Functie om een bericht naar de turtle te sturen
-local function sendMessageToTurtle(msg)
-    print("Verstuur bericht naar turtle: " .. msg)
-    rednet.broadcast(msg)  -- Stuur het bericht naar alle turtles via de modem
 end
 
--- Functie om de turtle te stoppen
-local function stopTurtle()
-    sendMessageToTurtle("stop")  -- Stop de turtle
-    print("Turtle is geblokkeerd en wordt afgesloten...")
+-- Voer programma uit als turtle niet geblokkeerd is
+local function runProgram(name)
+    if locked then
+        print("Kan programma niet uitvoeren. Turtle is geblokkeerd.")
+        return
+    end
+
+    print("Start programma: " .. name)
+    local success, err = pcall(function()
+        shell.run(name)
+    end)
+
+    if not success then
+        print("Fout bij uitvoeren van '" .. name .. "': " .. tostring(err))
+    else
+        print("Programma '" .. name .. "' is afgerond.")
+    end
 end
 
--- Functie om de turtle te starten (ontgrendelen)
-local function startTurtle()
-    sendMessageToTurtle("start")  -- Start de turtle
-    print("Turtle is nu ontgrendeld en kan weer werken.")
-end
-
--- Functie om een programma naar de turtle te sturen
-local function sendProgramToTurtle(programName, programCode)
-    local msg = "program:" .. programName .. ":" .. programCode
-    sendMessageToTurtle(msg)
-    print("Programma '" .. programName .. "' gestuurd naar turtle.")
-end
-
--- Functie voor interactie met de gebruiker
-local function userInput()
+-- Verwerk rednet berichten
+local function listenForRednet()
     while true do
-        print("\nVoer een commando in: stop, start, send <programma naam> <code>, addID <id>")
-        io.write("> ")
-        local input = read()
+        local id, msg = rednet.receive()
 
-        -- Verwerk de input van de gebruiker
-        local command, arg1, arg2 = input:match("^(%w+)%s*(%S*)%s*(.*)")
+        if msg == "ping" then
+            rednet.send(id, "pong")
 
-        if command == "stop" then
-            stopTurtle()  -- Verzend stop-commando naar de turtle
-        elseif command == "start" then
-            startTurtle()  -- Verzend start-commando naar de turtle
-        elseif command == "send" and arg1 and arg2 then
-            sendProgramToTurtle(arg1, arg2)  -- Verzend programma naar de turtle
-        elseif command == "addID" and arg1 then
-            addID(arg1) -- Voeg id toe
+        elseif msg == "stop" then
+            locked = true
+            saveLockStatus(true)
+            print("Turtle is nu geblokkeerd. Geen programma's kunnen worden uitgevoerd.")
+
+        elseif msg == "start" then
+            locked = false
+            saveLockStatus(false)
+            print("Turtle is opnieuw geactiveerd.")
+
+        elseif msg:sub(1, 7) == "delete:" then
+            local name = msg:sub(8)
+            if fs.exists(name) then
+                fs.delete(name)
+                print("Bestand '" .. name .. "' verwijderd.")
+            end
+
+        elseif msg:sub(1, 8) == "program:" then
+            local rest = msg:sub(9)
+            local name, code = rest:match("([^:]+):(.+)")
+            if name and code then
+                local file = fs.open(name, "w")
+                file.write(code)
+                file.close()
+                print("Programma '" .. name .. "' opgeslagen.")
+                if not locked then
+                    runProgram(name)
+                end
+            end
+
+        elseif not locked then
+            runProgram(msg)
         else
-            print("Ongeldig commando.")
+            print("Ontvangen commando genegeerd. Turtle is geblokkeerd.")
         end
     end
 end
 
--- Start het script en wacht op commando's van de gebruiker
-userInput()
+-- Luister naar keyboard input voor lokale programma-oproep
+local function listenForKeyboard()
+    while true do
+        term.setCursorBlink(true)
+        io.write("> ")
+        local input = read()
+        term.setCursorBlink(false)
+
+        if input ~= "" then
+            if not locked then
+                runProgram(input)
+            else
+                print("Turtle is geblokkeerd. Voer eerst 'start' uit via master.")
+            end
+        end
+    end
+end
+
+-- Laad initiële status bij opstart
+locked = loadLockStatus()
+
+if locked then
+    print("Turtle is geblokkeerd. Wacht op 'start' commando via master...")
+end
+
+-- Start rednet en keyboard listeners
+parallel.waitForAll(
+    listenForRednet,
+    listenForKeyboard
+)
