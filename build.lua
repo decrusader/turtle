@@ -78,5 +78,16 @@ local function layer()
             turtle.turnLeft()
         end
     end
+    turtle.turnLeft()
+    for k = 1, width do
+        turtle.forward()
+    end
+    turtle.turnRight()
+    if width % 2 ~= 0 then
+        for l = 1, length do
+            turtle.back()
+        end
+    end
+    
 end
-layer()
+
