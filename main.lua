@@ -28,7 +28,29 @@ local function saveLockStatus(state)
     f.write(textutils.serialize(state))
     f.close()
 end
+-- testcode
+local id, msg = rednet.receive()
 
+        if msg == "ping" then
+            rednet.send(id, "pong")
+
+        elseif msg == "stop" then
+            if not locked then
+                locked = true
+                saveLockStatus(true)
+                print("Turtle geblokkeerd door master. Uitvoering wordt gestopt.")
+                os.sleep(2)
+                return -- Stop het programma (wordt herstart door startup.lua)
+            end
+
+        elseif msg == "start" then
+            if locked then
+                locked = false
+                saveLockStatus(false)
+                print("Turtle opnieuw geactiveerd.")
+            end
+end
+-- testcode
 -- Blokkeer turtle indien vergrendeld
 local locked = loadLockStatus()
 
