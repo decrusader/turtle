@@ -66,16 +66,16 @@ local function layer()
     for j = 1, width do
         if j % 2 == 0 then
             lengteAchter()
-            turtle.right()
+            turtle.turnRight()
             turtle.forward()
             placeBlock()
-            turtle.right()
+            turtle.turnLeft()
         else
             lengteVoor()
-            turtle.right()
+            turtle.turnRight()
             turtle.forward()
             placeBlock()
-            turtle.right()
+            turtle.turnLeft()
         end
     end
 end
