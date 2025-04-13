@@ -28,7 +28,9 @@ end
 
 -- Vergrendel de turtle (blokkeren voor de uitvoering van commando's)
 local function blockTurtle()
+    local locked = loadLockStatus()
     while locked do
+        local locked = loadLockStatus()
         os.sleep(1)  -- Wacht 1 seconde tussen de checks
     end
 end
