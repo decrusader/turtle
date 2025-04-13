@@ -1,5 +1,6 @@
 -- startup.lua
 term.clear()
+term.setCursorPos(1, 1)
 print("programmas om uit te kiezen:")
 print("---------------------------------------")
 print("mine")
