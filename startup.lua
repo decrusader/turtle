@@ -1,7 +1,9 @@
 -- startup.lua
 term.clear()
 term.setCursorPos(1, 1)
-print("programmas om uit te kiezen:")
+print("           Welkom to Byte v1.0         ")
+print("=======================================")
+print("programmas to chose:")
 print("")
 print("    programma     |         status     ")
 print("---------------------------------------")
