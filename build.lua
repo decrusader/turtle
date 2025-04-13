@@ -1,102 +1,113 @@
--- build3d.lua
+-- build.lua
 
--- UI
-local function printHeader()
-    term.clear()
-    term.setCursorPos(1, 1)
-    print("=== AutoBuilder 3D ===")
+-- Parse args
+local args = {...}
+if #args < 3 then
+    print("Gebruik: build <breedte> <lengte> <hoogte>")
+    return
 end
 
--- Refuel functie
+local width = tonumber(args[1])
+local length = tonumber(args[2])
+local height = tonumber(args[3])
+
+if not width or not length or not height then
+    print("Ongeldige getallen.")
+    return
+end
+
+-- Helpers
+local function log(msg)
+    term.setCursorPos(1, 1)
+    term.clearLine()
+    print("Status: " .. msg)
+end
+
 local function autoRefuel()
-    if turtle.getFuelLevel() < 50 then
-        print("Bijvullen...")
+    if turtle.getFuelLevel() < 10 then
         turtle.select(16)
         if not turtle.refuel(1) then
-            print("Geen brandstof gevonden in slot 16!")
+            print("⚠️ Geen brandstof in slot 16!")
             return false
         end
     end
     return true
 end
 
--- Vraag gebruiker om input
-printHeader()
-write("Lengte: ")
-local length = tonumber(read())
-
-write("Breedte: ")
-local width = tonumber(read())
-
-write("Hoogte: ")
-local height = tonumber(read())
-
--- Controle input
-if not length or not width or not height then
-    print("Ongeldige invoer.")
-    return
+-- Plaats blok onder turtle
+local function placeBlock()
+    turtle.select(1)
+    if not turtle.detectDown() then
+        turtle.placeDown()
+    end
 end
 
-print("Start met bouwen...")
+-- Ga 1 stap naar voren met refuel check
+local function smartForward()
+    autoRefuel()
+    while not turtle.forward() do
+        turtle.dig()
+        sleep(0.2)
+    end
+end
 
--- Functie om een laag te bouwen
+-- Bouw 1 laag met zigzag patroon
 local function buildLayer()
     for w = 1, width do
         for l = 1, length do
-            autoRefuel()
-            turtle.select(1)
-            if turtle.detectDown() == false then
-                turtle.placeDown()
-            end
+            placeBlock()
             if l < length then
-                turtle.forward()
+                smartForward()
             end
         end
-        -- Draai aan einde van rij
+
+        -- Beweeg naar volgende rij
         if w < width then
             if w % 2 == 1 then
                 turtle.turnRight()
-                turtle.forward()
+                smartForward()
                 turtle.turnRight()
             else
                 turtle.turnLeft()
-                turtle.forward()
+                smartForward()
                 turtle.turnLeft()
             end
         end
     end
 end
 
--- Keer terug naar begin van laag
-local function returnToStart()
+-- Keer terug naar beginpositie van de laag
+local function resetToOrigin()
     if width % 2 == 1 then
         turtle.turnRight()
         for i = 1, width - 1 do
-            turtle.forward()
+            smartForward()
         end
         turtle.turnRight()
     else
-        if length > 1 then
-            turtle.turnLeft()
-            turtle.turnLeft()
-            for i = 1, length - 1 do
-                turtle.forward()
-            end
+        turtle.turnLeft()
+        turtle.turnLeft()
+    end
+
+    for i = 1, length - 1 do
+        smartForward()
+    end
+
+    turtle.turnLeft()
+    turtle.turnLeft()
+end
+
+-- Bouw het hele blok
+for h = 1, height do
+    log("Bouwen laag " .. h .. " / " .. height)
+    buildLayer()
+    if h < height then
+        resetToOrigin()
+        if not turtle.up() then
+            turtle.digUp()
+            turtle.up()
         end
     end
 end
 
--- Bouw alle lagen
-for h = 1, height do
-    printHeader()
-    print("Bouwen laag " .. h .. " van " .. height)
-    buildLayer()
-    if h < height then
-        returnToStart()
-        turtle.up()
-    end
-end
-
-printHeader()
-print("✅ Voltooid!")
-
+log("✅ Klaar!")
