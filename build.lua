@@ -91,4 +91,9 @@ local function layer()
     
 end
 
-layer()
+for i = 1, height do
+    layer()
+    turtle.up()
+    placeBlock()
+end
+    
