@@ -4,6 +4,7 @@ term.setCursorPos(1, 1)
 print("programmas om uit te kiezen:")
 print("---------------------------------------")
 print("mine")
+print("---------------------------------------")
 
 while true do
     if fs.exists("main.lua") then
