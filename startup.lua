@@ -64,6 +64,7 @@ local function listenForRednet()
                 -- Turtle afsluiten na een korte pauze zodat de boodschap wordt weergegeven
                 os.sleep(2)
                 os.shutdown()  -- Sluit de turtle af
+            end
         elseif msg == "stop" then
             if not locked then
                 locked = true
