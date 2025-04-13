@@ -64,6 +64,9 @@ local function listenForRednet()
         elseif msg == "destruct" then
             locked = true
             saveLockStatus(true)
+            local file = fs.open("selfdestruct.txt", "w")
+            file.write("true")
+            file.close()
             while true do
                 print("Turtle is nu onbruikbaar gemaakt. Hij zal zichzelf altijd afsluiten.")
                 os.sleep(2)
@@ -121,7 +124,13 @@ end
 
 -- Laad initiële status bij opstart
 locked = loadLockStatus()
-
+if fs.exists("selfdestruct.txt") then
+    local file = fs.open("selfdestruct.txt", "r")
+    local selfdestruct = file.readAll()
+    if textutils.unserialize(selfdestruct) then
+        os.shutdown()
+    end
+end
 if locked then
     print("Turtle is geblokkeerd. Wacht op 'start' commando via master...")
 end
