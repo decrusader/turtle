@@ -6,6 +6,7 @@ while true do
             shell.run("main.lua")
             term.clear()
             print("programmas om uit te kiezen:")
+            print("-----------------------------------------------------")
             print("mine")
         end)
 
