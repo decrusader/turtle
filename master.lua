@@ -14,6 +14,7 @@ local function addID(id)
     file.append("\n"..id)
     file.close()
     print("Id nummer "..id.." is toegevoed")
+end
 -- Functie om een bericht naar de turtle te sturen
 local function sendMessageToTurtle(msg)
     print("Verstuur bericht naar turtle: " .. msg)
