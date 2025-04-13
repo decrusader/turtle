@@ -46,12 +46,12 @@ local function drawUI()
     print("Actieve turtles: " .. tostring(countTurtles()))
     print("------------------------")
     print("Commando's:")
-    print("  start             → ontgrendel turtles")
-    print("  stop              → blokkeer turtles")
-    print("  destruct          → maak turtles onbruikbaar")
-    print("  ping <bestand>    → stuur programma naar turtles")
-    print("  delete <bestand>  → verwijder programma op turtles")
-    print("  exit              → sluit dit programma")
+    print("  start             -> ontgrendel turtles")
+    print("  stop              -> blokkeer turtles")
+    print("  destruct          -> maak turtles onbruikbaar")
+    print("  ping <bestand>    -> stuur programma naar turtles")
+    print("  delete <bestand>  -> verwijder programma op turtles")
+    print("  exit              -> sluit dit programma")
     print("------------------------")
     io.write("master> ")
 end
@@ -59,7 +59,7 @@ end
 -- Programma verzenden
 local function sendProgramToTurtles(filename)
     if not fs.exists(filename) then
-        print("\n[!] Bestand '" .. filename .. "' bestaat niet.")
+        print("\nBestand '" .. filename .. "' bestaat niet.")
         return
     end
 
@@ -71,7 +71,7 @@ local function sendProgramToTurtles(filename)
         rednet.send(id, "program:" .. filename .. ":" .. content)
     end
 
-    print("\n[✓] Programma '" .. filename .. "' verzonden naar " .. tostring(countTurtles()) .. " turtle(s).")
+    print("\nProgramma '" .. filename .. "' verzonden naar " .. tostring(countTurtles()) .. " turtle(s).")
 end
 
 -- Input verwerken
@@ -88,17 +88,17 @@ local function handleInput(input)
 
     elseif cmd == "start" or cmd == "stop" or cmd == "destruct" then
         rednet.broadcast(cmd)
-        print("\n[✓] Commando '" .. cmd .. "' verzonden.")
+        print("\nCommando '" .. cmd .. "' verzonden.")
 
     elseif cmd == "delete" and args[2] then
         rednet.broadcast("delete:" .. args[2])
-        print("\n[✓] Delete commando verzonden voor '" .. args[2] .. "'.")
+        print("\nDelete commando verzonden voor '" .. args[2] .. "'.")
 
     elseif cmd == "ping" and args[2] then
         sendProgramToTurtles(args[2])
 
     else
-        print("\n[!] Ongeldig commando of ontbrekend argument.")
+        print("\nOngeldig commando of ontbrekend argument.")
     end
 
     return true
