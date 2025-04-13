@@ -48,13 +48,13 @@ local function placeBlock()
 end
 
 local function lengteVoor()
-    for i = 0, length do
+    for i = 2, length do
         turtle.forward()
         placeBlock()
     end
 end
 local function lengteAchter()
-    for i = 0, length do
+    for i = 2, length do
         turtle.back()
         placeBlock()
     end
