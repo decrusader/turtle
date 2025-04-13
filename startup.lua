@@ -1,13 +1,13 @@
 -- startup.lua
+term.clear()
+print("programmas om uit te kiezen:")
+print("-----------------------------------------------------")
+print("mine")
 
 while true do
     if fs.exists("main.lua") then
         local ok, err = pcall(function()
-            shell.run("main.lua")
-            term.clear()
-            print("programmas om uit te kiezen:")
-            print("-----------------------------------------------------")
-            print("mine")
+            shell.run("main.lua"))
         end)
 
         if not ok then
