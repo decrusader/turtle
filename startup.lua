@@ -28,9 +28,8 @@ end
 
 -- Vergrendel de turtle (blokkeren voor de uitvoering van commando's)
 local function blockTurtle()
-    local locked = loadLockStatus()
+    
     while locked do
-        local locked = loadLockStatus()
         os.sleep(1)  -- Wacht 1 seconde tussen de checks
     end
 end
@@ -119,7 +118,7 @@ local function listenForKeyboard()
         io.write("> ")
         local input = read()
         term.setCursorBlink(false)
-
+        local locked = loadLockStatus()
         if input ~= "" and not locked then
             runProgram(input)
         end
