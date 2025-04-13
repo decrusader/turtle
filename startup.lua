@@ -2,6 +2,8 @@
 term.clear()
 term.setCursorPos(1, 1)
 print("programmas om uit te kiezen:")
+print("")
+print("    programma     |         status     ")
 print("---------------------------------------")
 print("mine                     known no error")
 print("---------------------------------------")
