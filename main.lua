@@ -1,4 +1,4 @@
--- Controleer of de modem aan de rechterkant zit (modem op de turtle)
+-- Controleer of de modem aan de linkerkant zit (modem op de turtle)
 if not peripheral.getType("left") or peripheral.getType("left") ~= "modem" then
     print("Geen modem aan de linkerkant gevonden. Programma gestopt.")
     return
