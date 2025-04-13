@@ -4,35 +4,53 @@ if peripheral.getType("left") ~= "modem" then
     return
 end
 
--- Open rednet op de linker modem
 rednet.open("left")
 
--- Verzamel actieve turtles
-local function getActiveTurtles(timeout)
-    local turtles = {}
-    rednet.broadcast("check")  -- Vraag alle turtles om zich te melden
-    local timer = os.startTimer(timeout or 2)
+local turtles = {}
+local lastUpdate = 0
+local updateInterval = 2  -- seconden
+
+-- Functie om actieve turtles op te halen
+local function getActiveTurtles()
+    turtles = {}
+    rednet.broadcast("check")
+    local timer = os.startTimer(1.5)
 
     while true do
         local event, p1, p2 = os.pullEvent()
-
-        if event == "rednet_message" and type(p2) == "string" then
-            if p2 == "pong" then
-                turtles[p1] = true
-            end
-
+        if event == "rednet_message" and type(p2) == "string" and p2 == "pong" then
+            turtles[p1] = true
         elseif event == "timer" and p1 == timer then
             break
         end
     end
-
-    return turtles
 end
 
--- Verstuur een programma naar alle actieve turtles
+-- UI tekenen
+local function drawUI()
+    term.setBackgroundColor(colors.black)
+    term.setTextColor(colors.white)
+    term.clear()
+    term.setCursorPos(1, 1)
+
+    print("== MASTER CONTROLLER ==")
+    print("Actieve turtles: " .. tostring(#(function() local c = 0 for _ in pairs(turtles) do c = c + 1 end return c end)()))
+    print("------------------------")
+    print("Commando's:")
+    print("  start             → ontgrendel turtles")
+    print("  stop              → blokkeer turtles")
+    print("  destruct          → maak turtles onbruikbaar")
+    print("  ping <bestand>    → stuur programma naar turtles")
+    print("  delete <bestand>  → verwijder programma op turtles")
+    print("  exit              → sluit dit programma")
+    print("------------------------")
+    io.write("master> ")
+end
+
+-- Programma verzenden
 local function sendProgramToTurtles(filename)
     if not fs.exists(filename) then
-        print("Bestand '" .. filename .. "' bestaat niet.")
+        print("\n[!] Bestand '" .. filename .. "' bestaat niet.")
         return
     end
 
@@ -40,47 +58,57 @@ local function sendProgramToTurtles(filename)
     local content = file.readAll()
     file.close()
 
-    local turtles = getActiveTurtles()
-
-    local count = 0
     for id in pairs(turtles) do
         rednet.send(id, "program:" .. filename .. ":" .. content)
-        count = count + 1
     end
 
-    print("Programma '" .. filename .. "' verzonden naar " .. count .. " turtle(s).")
+    print("\n[✓] Programma '" .. filename .. "' verzonden naar " .. tostring(#(function() local c=0 for _ in pairs(turtles) do c=c+1 end return c end)()) .. " turtle(s).")
 end
 
--- Simpele menu-loop
-while true do
-    term.setCursorBlink(true)
-    io.write("master> ")
-    local input = read()
-    term.setCursorBlink(false)
-
+-- Input verwerken
+local function handleInput(input)
     local args = {}
     for word in input:gmatch("%S+") do
         table.insert(args, word)
     end
-
     local cmd = args[1]
 
-    if cmd == "stop" or cmd == "start" or cmd == "destruct" then
+    if cmd == "exit" then
+        print("Programma afgesloten.")
+        return false
+
+    elseif cmd == "start" or cmd == "stop" or cmd == "destruct" then
         rednet.broadcast(cmd)
-        print("Commando '" .. cmd .. "' verzonden.")
+        print("\n[✓] Commando '" .. cmd .. "' verzonden.")
 
     elseif cmd == "delete" and args[2] then
         rednet.broadcast("delete:" .. args[2])
-        print("Verwijdercommando voor '" .. args[2] .. "' verzonden.")
+        print("\n[✓] Delete commando verzonden voor '" .. args[2] .. "'.")
 
     elseif cmd == "ping" and args[2] then
         sendProgramToTurtles(args[2])
 
-    elseif cmd == "exit" then
-        print("Programma afgesloten.")
-        break
-
     else
-        print("Onbekend commando. Gebruik: start | stop | destruct | delete <bestand> | ping <bestand> | exit")
+        print("\n[!] Ongeldig commando of ontbrekend argument.")
+    end
+
+    return true
+end
+
+-- Hoofdlus
+while true do
+    -- Update lijst met actieve turtles elke X seconden
+    if os.clock() - lastUpdate > updateInterval then
+        getActiveTurtles()
+        lastUpdate = os.clock()
+    end
+
+    drawUI()
+    term.setCursorBlink(true)
+    local input = read()
+    term.setCursorBlink(false)
+
+    if not handleInput(input) then
+        break
     end
 end
