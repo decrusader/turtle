@@ -7,9 +7,9 @@ if #args < 3 then
     return
 end
 
-local width = tonumber(args[1])
-local length = tonumber(args[2])
-local height = tonumber(args[3])
+width = tonumber(args[1])
+length = tonumber(args[2])
+height = tonumber(args[3])
 
 if not width or not length or not height then
     print("Ongeldige invoer.")
