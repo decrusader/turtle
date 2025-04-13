@@ -45,6 +45,8 @@ local function drawUI()
     print("[2] Start turtles (ontgrendelen)")
     print("[3] Ping opnieuw")
     print("[4] Verlaat programma")
+    print("")
+    io.write("Kies optie: ")
 end
 
 -- Stuur commando naar alle turtles
@@ -58,24 +60,28 @@ end
 while true do
     pingTurtles()
     drawUI()
-
-    local event, key = os.pullEvent("key")
-    if key == keys.one then
+    
+    local input = read()
+    if input == "1" then
         broadcastCommand("stop")
         print("Stop commando verzonden.")
         os.sleep(1)
 
-    elseif key == keys.two then
+    elseif input == "2" then
         broadcastCommand("start")
         print("Start commando verzonden.")
         os.sleep(1)
 
-    elseif key == keys.three then
-        print("Pingen...")
+    elseif input == "3" then
+        print("Opnieuw pingen...")
         os.sleep(1)
 
-    elseif key == keys.four then
+    elseif input == "4" then
         print("Programma afgesloten.")
         break
+
+    else
+        print("Ongeldige keuze.")
+        os.sleep(1)
     end
 end
