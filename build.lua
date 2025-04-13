@@ -84,7 +84,7 @@ local function layer()
     end
     turtle.turnRight()
     if width % 2 ~= 0 then
-        for l = 1, length do
+        for l = 1, length - 1 do
             turtle.back()
         end
     end
