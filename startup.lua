@@ -4,6 +4,9 @@ while true do
     if fs.exists("main.lua") then
         local ok, err = pcall(function()
             shell.run("main.lua")
+            term.clear()
+            print("programmas om uit te kiezen:")
+            print("mine")
         end)
 
         if not ok then
