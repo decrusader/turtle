@@ -1,6 +1,3 @@
-print("Give current x-coördinates")
-currentx = read()
-print("Give current y-coördinates")
-currenty = read()
-print("Give current z-coördinates")
-currentz = read()
+current = { ... }
+for #current < 4 then
+  local cx
