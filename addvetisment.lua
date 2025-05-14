@@ -4,6 +4,6 @@ print("wat wil je sturen? ")
 local x = read()
  
 repeat
-    chatBox.sendMessage(x)
+    chatBox.sendMessage(x,"#add")
     sleep(10)
 until x == ""
