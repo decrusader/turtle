@@ -1,3 +1,4 @@
+-- === CONFIG ===
 local programs = {
     {name = "Master", url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/StartupProgrammas/MasterComputer/master.lua?token=GHSAT0AAAAAADCDTGAPVY6G7X4ELAHVLLJK2BITLSA"},
     {name = "Music", url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/music.lua?token=GHSAT0AAAAAADCDTGAOYB634IA6JB6HWH7M2BITM7Q"},
