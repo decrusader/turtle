@@ -2,9 +2,8 @@
 local args = {...}
 local statusFile = args[1] or "/programs/status.json"
 local programs = {
-    "Echo",
-    "Test Script",
-    "Example App"
+    "Master",
+    "Music",
 }
 
 local function loadStatus()
