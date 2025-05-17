@@ -70,7 +70,7 @@ local function drawUI()
     term.clear()
  
     -- Title
-    local title = "== Program Launcher =="
+    local title = "== Welkom to Byte v1.0 =="
     local titleX = math.floor((termW - #title) / 2) + 1
     term.setCursorPos(titleX, 1)
     term.setTextColor(colors.yellow)
