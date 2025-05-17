@@ -1,6 +1,6 @@
 -- === CONFIG ===
 local programs = {
-    {name = "Master", url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/StartupProgrammas/MasterComputer/master.lua?token=GHSAT0AAAAAADCDTGAOKAXSEKGZUXYKFCMM2BITFBQ"},
+    {name = "Master", url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/StartupProgrammas/MasterComputer/master.lua?token=GHSAT0AAAAAADCDTGAPVY6G7X4ELAHVLLJK2BITLSA"},
     {name = "Music", url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/music.lua?token=GHSAT0AAAAAADCDTGAP3E75KDWSEQ7A5NJS2BITHIQ"},
     {name = "Debug Status Editor", url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/StartupProgrammas/MasterComputer/debug_status.lua?token=GHSAT0AAAAAADCDTGAPIRUGXSGXPRF3Z4FO2BITJVQ"} -- <- Replace with your real raw URL
 }
