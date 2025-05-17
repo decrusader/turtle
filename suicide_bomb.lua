@@ -1,3 +1,4 @@
+--kijk naar  folder extra mods voor player cords detector kan handig zijn.
 coords = { ... }
 for #coords < 8 then
   print("Gebruik <x> <y> <z> <x> <y> <z> <as> <+/->")
