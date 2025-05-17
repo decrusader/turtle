@@ -1,9 +1,8 @@
 -- === CONFIG ===
 local programs = {
-    {name = "Echo", url = "https://pastebin.com/raw/gnB4WcLx"},
-    {name = "Test Script", url = "https://pastebin.com/raw/UqYvFeYN"},
-    {name = "Example App", url = "https://pastebin.com/raw/Wp2yF1iK"},
-    {name = "Debug Status Editor", url = "https://raw.githubusercontent.com/YourUsername/YourRepo/main/debug_status.lua"} -- <- Replace with your real raw URL
+    {name = "Master", url = "https://pastebin.com/raw/gnB4WcLx"},
+    {name = "Music", url = "https://pastebin.com/raw/UqYvFeYN"},
+    {name = "Debug Status Editor", url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/StartupProgrammas/MasterComputer/debug_status.lua?token=GHSAT0AAAAAADCDTGAPQ34AXPGY5H3NBBUI2BITEGA"} -- <- Replace with your real raw URL
 }
  
 -- === SETUP ===
