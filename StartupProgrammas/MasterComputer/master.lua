@@ -1,11 +1,15 @@
--- Controleer of modem aan de linkerkant zit
-if peripheral.getType("left") ~= "modem" then
-    print("Geen modem aan de linkerkant gevonden. Programma gestopt.")
+-- Zoek naar een Ender Modem
+local modem = peripheral.find("modem", function(name, obj)
+    return obj.isWireless()
+end)
+
+if not modem then
+    print("Geen draadloze modem (Ender Modem) gevonden. Programma gestopt.")
     return
 end
 
--- Open rednet op de linkerkant
-rednet.open("left")
+-- Open rednet op de gevonden modem
+rednet.open(peripheral.getName(modem))
 
 local turtles = {}
 local lastUpdate = 0
