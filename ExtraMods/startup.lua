@@ -103,13 +103,21 @@ local function login()
     printCenteredLine(startLine, "=== Login ===")
     printCenteredLine(startLine + 1, "Voer je naam in:")
 
-    term.setCursorPos(math.floor(w/2), startLine + 2)
+    local inputWidth = 20
+    local inputX = math.floor((w - inputWidth) / 2)
+    term.setCursorPos(inputX, startLine + 2)
+    term.write(string.rep(" ", inputWidth))  -- leeg invoerveld tekenen
+    term.setCursorPos(inputX, startLine + 2)
     local name = read()
 
     if players[name] == nil then
         printCenteredLine(startLine + 3, "Nieuwe gebruiker! Maak een wachtwoord aan:")
-        term.setCursorPos(math.floor(w/2), startLine + 4)
+
+        term.setCursorPos(inputX, startLine + 4)
+        term.write(string.rep(" ", inputWidth))
+        term.setCursorPos(inputX, startLine + 4)
         local code = read("*")
+
         players[name] = {balance=10000, stocks={}, code=code}
         saveData()
         printCenteredLine(startLine + 5, "Account aangemaakt! Welkom, " .. name)
@@ -118,8 +126,12 @@ local function login()
         local tries = 3
         while tries > 0 do
             printCenteredLine(startLine + 3, "Voer je code in:")
-            term.setCursorPos(math.floor(w/2), startLine + 4)
+
+            term.setCursorPos(inputX, startLine + 4)
+            term.write(string.rep(" ", inputWidth))
+            term.setCursorPos(inputX, startLine + 4)
             local code = read("*")
+
             if code == players[name].code then
                 printCenteredLine(startLine + 5, "Succesvol ingelogd, welkom " .. name)
                 sleep(1.5)
@@ -133,8 +145,8 @@ local function login()
                 sleep(1.5)
                 term.setCursorPos(1, startLine + 5)
                 term.clearLine()
-                term.setCursorPos(1, startLine + 4)
-                term.clearLine()
+                term.setCursorPos(inputX, startLine + 4)
+                term.write(string.rep(" ", inputWidth))
             end
         end
     end
