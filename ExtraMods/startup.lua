@@ -345,6 +345,7 @@ function showGraphMenu()
         local startY = math.floor((h - graphHeight) / 2) + 1
         drawGraph(comp, startX, startY, graphWidth, graphHeight)
         print("\nDruk op Enter om terug te keren naar het menu.")
+        print("\n")
         read()
         clearScreen()
     else
