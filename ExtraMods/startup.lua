@@ -89,6 +89,74 @@ local function clearScreen()
     term.setCursorPos(1,1)
 end
 
+-- Custom readCentered input functie
+local function readCentered(maxLength, y)
+    local input = ""
+    term.setCursorBlink(true)
+    while true do
+        -- Bereken startX zodat tekst gecentreerd is
+        local startX = math.floor((w - #input) / 2) + 1
+        term.setCursorPos(1, y)
+        term.clearLine()
+        term.setCursorPos(startX, y)
+        term.write(input)
+
+        local event, key = os.pullEvent("key")
+        if key == keys.enter then
+            term.setCursorBlink(false)
+            return input
+        elseif key == keys.backspace then
+            if #input > 0 then
+                input = input:sub(1, -2)
+            end
+        elseif key == keys.left or key == keys.right or key == keys.up or key == keys.down then
+            -- negeer pijltjestoetsen
+        else
+            local char = keys.getName(key)
+            -- Alleen acceptabele ASCII karakters tonen (a-z, 0-9, spatie en symbolen)
+            -- Omdat keys.getName geeft b.v. "a", "space" etc. 
+            -- We gebruiken event 'char' ook, handiger:
+            -- Maar os.pullEvent("key") geeft geen char, we moeten "char" event gebruiken
+        end
+
+        -- Om karakters te krijgen gebruiken we ook 'char' event
+        -- Dus we passen de event lus aan om ook char te verwerken
+        -- Maak functie opnieuw met os.pullEvent()
+
+        -- Ik pas readCentered aan om zowel 'char' als 'key' events te verwerken
+    end
+end
+
+-- Verbeterde readCentered met char event:
+
+local function readCenteredImproved(maxLength, y)
+    local input = ""
+    term.setCursorBlink(true)
+    while true do
+        local startX = math.floor((w - #input) / 2) + 1
+        term.setCursorPos(1, y)
+        term.clearLine()
+        term.setCursorPos(startX, y)
+        term.write(input)
+
+        local event, param = os.pullEvent()
+        if event == "char" then
+            if #input < maxLength then
+                input = input .. param
+            end
+        elseif event == "key" then
+            if param == keys.enter then
+                term.setCursorBlink(false)
+                return input
+            elseif param == keys.backspace then
+                if #input > 0 then
+                    input = input:sub(1, -2)
+                end
+            end
+        end
+    end
+end
+
 local function login()
     clearScreen()
     local maxLines = 6
@@ -104,19 +172,13 @@ local function login()
     printCenteredLine(startLine + 1, "Voer je naam in:")
 
     local inputWidth = 20
-    local inputX = math.floor((w - inputWidth) / 2)
-    term.setCursorPos(inputX, startLine + 2)
-    term.write(string.rep(" ", inputWidth))  -- leeg invoerveld tekenen
-    term.setCursorPos(inputX, startLine + 2)
-    local name = read()
+
+    local name = readCenteredImproved(inputWidth, startLine + 2)
 
     if players[name] == nil then
         printCenteredLine(startLine + 3, "Nieuwe gebruiker! Maak een wachtwoord aan:")
 
-        term.setCursorPos(inputX, startLine + 4)
-        term.write(string.rep(" ", inputWidth))
-        term.setCursorPos(inputX, startLine + 4)
-        local code = read("*")
+        local code = readCenteredImproved(inputWidth, startLine + 4)
 
         players[name] = {balance=10000, stocks={}, code=code}
         saveData()
@@ -127,10 +189,7 @@ local function login()
         while tries > 0 do
             printCenteredLine(startLine + 3, "Voer je code in:")
 
-            term.setCursorPos(inputX, startLine + 4)
-            term.write(string.rep(" ", inputWidth))
-            term.setCursorPos(inputX, startLine + 4)
-            local code = read("*")
+            local code = readCenteredImproved(inputWidth, startLine + 4)
 
             if code == players[name].code then
                 printCenteredLine(startLine + 5, "Succesvol ingelogd, welkom " .. name)
@@ -145,8 +204,6 @@ local function login()
                 sleep(1.5)
                 term.setCursorPos(1, startLine + 5)
                 term.clearLine()
-                term.setCursorPos(inputX, startLine + 4)
-                term.write(string.rep(" ", inputWidth))
             end
         end
     end
@@ -168,6 +225,10 @@ local function loadingAnimation(duration)
     end
     clearScreen()
 end
+
+-- Rest van je stock market functies...
+
+-- (Voor beknoptheid kopieer ik de functies van eerder, die je natuurlijk kunt vervangen)
 
 function buyStock(company, amount)
     local c = companies[company]
