@@ -255,37 +255,62 @@ end
 
 local function drawGraph(company, x, y, width, height)
     local c = companies[company]
-    if not c or #c.history == 0 then
-        return
-    end
+    if not c or #c.history == 0 then return end
 
+    -- Bepaal max en min prijs in history
     local maxPrice = -math.huge
     local minPrice = math.huge
     for _, price in ipairs(c.history) do
         if price > maxPrice then maxPrice = price end
         if price < minPrice then minPrice = price end
     end
-
     local range = maxPrice - minPrice
     if range == 0 then range = 1 end
 
-    for i = 0, height - 1 do
-        term.setCursorPos(x, y + i)
+    -- Maak lege grafiek achtergrond
+    for row = 0, height - 1 do
+        term.setCursorPos(x, y + row)
         term.write(string.rep(" ", width))
     end
 
-    for i = 1, math.min(#c.history, width) do
-        local price = c.history[#c.history - width + i]
-        if price then
-            local relativeHeight = math.floor(((price - minPrice) / range) * (height - 1))
-            local drawY = y + (height - 1) - relativeHeight
-            term.setCursorPos(x + i - 1, drawY)
-            term.write("*")
+    local points = {}
+
+    -- Pak tot width aantal data punten (laatste data)
+    local startIndex = #c.history - width + 1
+    if startIndex < 1 then startIndex = 1 end
+
+    -- Bereken y-positie per datapunt
+    for i = startIndex, #c.history do
+        local price = c.history[i]
+        local relative = (price - minPrice) / range
+        local yPos = y + height - 1 - math.floor(relative * (height - 1))
+        table.insert(points, {x = x + i - startIndex, y = yPos})
+    end
+
+    -- Teken punten en verbind lijnen
+    for i, point in ipairs(points) do
+        term.setCursorPos(point.x, point.y)
+        term.write("*")
+        if i > 1 then
+            -- Verbind met vorige punt (verticaal of diagonaal)
+            local prev = points[i - 1]
+            local dx = point.x - prev.x
+            local dy = point.y - prev.y
+            -- Verticaal verbinden
+            if dy ~= 0 then
+                local step = dy > 0 and 1 or -1
+                for yy = prev.y + step, point.y - step, step do
+                    term.setCursorPos(point.x - 1, yy)
+                    term.write("|")
+                end
+            end
+            -- Horizontaal verbindingslijn al getekend door punten zelf (met "*")
         end
     end
 
-    term.setCursorPos(x, y - 1)
+    -- Teken titel boven de grafiek
     local title = company .. " - Prijs: $" .. string.format("%.2f", c.price)
+    term.setCursorPos(x, y - 1)
     term.write(centerText(title, width))
 end
 
