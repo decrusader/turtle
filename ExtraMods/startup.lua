@@ -27,6 +27,7 @@ term.redirect(monitor)
 
 local dataFile = "stock_data.txt"
 local playersFile = "players_data.txt"
+local logFile = "user_input_log.txt"
 
 local companies = {}
 local players = {}
@@ -35,6 +36,13 @@ local currentPlayer = nil
 local INFLATION_RATE = 0.01
 local CRASH_CHANCE = 0.01
 local PRICE_VOLATILITY = 0.05
+
+-- Functie om log aan te maken en schrijven
+local function logInput(text)
+    local file = fs.open(logFile, "a")
+    file.writeLine(text)
+    file.close()
+end
 
 local function centerText(text, width)
     local padding = math.floor((width - #text) / 2)
@@ -89,53 +97,20 @@ local function clearScreen()
     term.setCursorPos(1,1)
 end
 
--- Custom readCentered input functie
-local function readCentered(maxLength, y)
+-- Custom readCentered input functie, met loggen
+local function readCenteredImproved(maxLength, y, prompt)
     local input = ""
     term.setCursorBlink(true)
     while true do
-        -- Bereken startX zodat tekst gecentreerd is
         local startX = math.floor((w - #input) / 2) + 1
         term.setCursorPos(1, y)
         term.clearLine()
-        term.setCursorPos(startX, y)
-        term.write(input)
-
-        local event, key = os.pullEvent("key")
-        if key == keys.enter then
-            term.setCursorBlink(false)
-            return input
-        elseif key == keys.backspace then
-            if #input > 0 then
-                input = input:sub(1, -2)
-            end
-        elseif key == keys.left or key == keys.right or key == keys.up or key == keys.down then
-            -- negeer pijltjestoetsen
-        else
-            local char = keys.getName(key)
-            -- Alleen acceptabele ASCII karakters tonen (a-z, 0-9, spatie en symbolen)
-            -- Omdat keys.getName geeft b.v. "a", "space" etc. 
-            -- We gebruiken event 'char' ook, handiger:
-            -- Maar os.pullEvent("key") geeft geen char, we moeten "char" event gebruiken
+        if prompt then
+            term.write(centerText(prompt, w))
+            y = y + 1
+            term.setCursorPos(1, y)
+            term.clearLine()
         end
-
-        -- Om karakters te krijgen gebruiken we ook 'char' event
-        -- Dus we passen de event lus aan om ook char te verwerken
-        -- Maak functie opnieuw met os.pullEvent()
-
-        -- Ik pas readCentered aan om zowel 'char' als 'key' events te verwerken
-    end
-end
-
--- Verbeterde readCentered met char event:
-
-local function readCenteredImproved(maxLength, y)
-    local input = ""
-    term.setCursorBlink(true)
-    while true do
-        local startX = math.floor((w - #input) / 2) + 1
-        term.setCursorPos(1, y)
-        term.clearLine()
         term.setCursorPos(startX, y)
         term.write(input)
 
@@ -147,6 +122,7 @@ local function readCenteredImproved(maxLength, y)
         elseif event == "key" then
             if param == keys.enter then
                 term.setCursorBlink(false)
+                logInput("[Input] " .. input)
                 return input
             elseif param == keys.backspace then
                 if #input > 0 then
@@ -169,17 +145,13 @@ local function login()
     end
 
     printCenteredLine(startLine, "=== Login ===")
+
     printCenteredLine(startLine + 1, "Voer je naam in:")
-
-    local inputWidth = 20
-
-    local name = readCenteredImproved(inputWidth, startLine + 2)
+    local name = readCenteredImproved(20, startLine + 2)
 
     if players[name] == nil then
         printCenteredLine(startLine + 3, "Nieuwe gebruiker! Maak een wachtwoord aan:")
-
-        local code = readCenteredImproved(inputWidth, startLine + 4)
-
+        local code = readCenteredImproved(20, startLine + 4)
         players[name] = {balance=10000, stocks={}, code=code}
         saveData()
         printCenteredLine(startLine + 5, "Account aangemaakt! Welkom, " .. name)
@@ -188,9 +160,7 @@ local function login()
         local tries = 3
         while tries > 0 do
             printCenteredLine(startLine + 3, "Voer je code in:")
-
-            local code = readCenteredImproved(inputWidth, startLine + 4)
-
+            local code = readCenteredImproved(20, startLine + 4)
             if code == players[name].code then
                 printCenteredLine(startLine + 5, "Succesvol ingelogd, welkom " .. name)
                 sleep(1.5)
@@ -226,10 +196,7 @@ local function loadingAnimation(duration)
     clearScreen()
 end
 
--- Rest van je stock market functies...
-
--- (Voor beknoptheid kopieer ik de functies van eerder, die je natuurlijk kunt vervangen)
-
+-- Koop functie met loggen
 function buyStock(company, amount)
     local c = companies[company]
     if not c then
@@ -247,8 +214,10 @@ function buyStock(company, amount)
     c.owners[currentPlayer] = (c.owners[currentPlayer] or 0) + amount
     saveData()
     print("Aandelen gekocht!")
+    logInput("[Koop] Speler " .. currentPlayer .. " kocht " .. amount .. " aandelen van " .. company .. " voor $" .. string.format("%.2f", cost))
 end
 
+-- Verkoop functie met loggen
 function sellStock(company, amount)
     local c = companies[company]
     if not c then
@@ -266,6 +235,7 @@ function sellStock(company, amount)
     c.owners[currentPlayer] = c.owners[currentPlayer] - amount
     saveData()
     print("Aandelen verkocht!")
+    logInput("[Verkoop] Speler " .. currentPlayer .. " verkocht " .. amount .. " aandelen van " .. company .. " voor $" .. string.format("%.2f", earnings))
 end
 
 function updateMarket()
@@ -275,12 +245,55 @@ function updateMarket()
         if math.random() < CRASH_CHANCE then
             c.price = c.price * 0.5
         end
+        if c.price < 1 then c.price = 1 end -- minimale prijs
         table.insert(c.history, c.price)
         if #c.history > 40 then table.remove(c.history, 1) end
     end
 end
 
+-- Functie om grafiek te tekenen van prijs historie
+local function drawGraph(company, x, y, width, height)
+    local c = companies[company]
+    if not c or #c.history == 0 then
+        return
+    end
+
+    -- Bereken max en min
+    local maxPrice = -math.huge
+    local minPrice = math.huge
+    for _, price in ipairs(c.history) do
+        if price > maxPrice then maxPrice = price end
+        if price < minPrice then minPrice = price end
+    end
+
+    local range = maxPrice - minPrice
+    if range == 0 then range = 1 end
+
+    -- Teken grafiek achtergrond
+    for i = 0, height - 1 do
+        term.setCursorPos(x, y + i)
+        term.write(string.rep(" ", width))
+    end
+
+    -- Teken grafiek lijn
+    for i = 1, math.min(#c.history, width) do
+        local price = c.history[#c.history - width + i]
+        if price then
+            local relativeHeight = math.floor(((price - minPrice) / range) * (height - 1))
+            local drawY = y + (height - 1) - relativeHeight
+            term.setCursorPos(x + i - 1, drawY)
+            term.write("*")
+        end
+    end
+
+    -- Titel met naam en huidige prijs
+    term.setCursorPos(x, y - 1)
+    local title = company .. " - Prijs: $" .. string.format("%.2f", c.price)
+    term.write(centerText(title, width))
+end
+
 function showPortfolio()
+    clearScreen()
     local p = players[currentPlayer]
     print("=== Portfolio voor " .. currentPlayer .. " ===")
     print("Saldo: $" .. string.format("%.2f", p.balance))
@@ -299,8 +312,9 @@ function mainMenu()
         print("1. Koop aandelen")
         print("2. Verkoop aandelen")
         print("3. Toon portfolio")
-        print("4. Wacht op markt update")
-        print("5. Exit")
+        print("4. Toon grafiek")
+        print("5. Wacht op markt update")
+        print("6. Exit")
         local choice = read()
         if choice == "1" then
             print("Welk bedrijf?")
@@ -325,10 +339,27 @@ function mainMenu()
         elseif choice == "3" then
             showPortfolio()
         elseif choice == "4" then
+            clearScreen()
+            print("Welke bedrijf grafiek wil je zien?")
+            local comp = read()
+            if companies[comp] then
+                -- Teken grafiek centraal, ongeveer 60 breed en 15 hoog
+                local graphWidth = math.min(60, w - 4)
+                local graphHeight = math.min(15, h - 6)
+                local startX = math.floor((w - graphWidth) / 2)
+                local startY = math.floor((h - graphHeight) / 2)
+                drawGraph(comp, startX, startY, graphWidth, graphHeight)
+                print("\nDruk op Enter om terug te keren.")
+                read()
+                clearScreen()
+            else
+                print("Bedrijf bestaat niet.")
+            end
+        elseif choice == "5" then
             print("Markt wordt geüpdatet...")
             updateMarket()
             saveData()
-        elseif choice == "5" then
+        elseif choice == "6" then
             print("Programma wordt afgesloten.")
             break
         else
