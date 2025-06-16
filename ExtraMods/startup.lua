@@ -95,8 +95,6 @@ local function clearScreen()
     term.setCursorPos(1,1)
 end
 
--- Verbeterde readCentered die input toont als sterretjes als flag hidden = true
--- Logt ook vraag + actuele invoer (zonder sterretjes!) op computer
 local function readCenteredImproved(maxLength, y, prompt, hidden)
     local input = ""
     term.setCursorBlink(true)
@@ -119,7 +117,6 @@ local function readCenteredImproved(maxLength, y, prompt, hidden)
         term.setCursorPos(startX, y)
         term.write(displayInput)
 
-        -- Log actuele input elke keer als het verandert
         logInput("[Input] " .. input)
 
         local event, param = os.pullEvent()
@@ -306,13 +303,39 @@ function showPortfolio()
     end
 end
 
+function showGraphMenu()
+    clearScreen()
+    print(centerText("=== Grafiek Bekijken ===", w))
+    print("\nBeschikbare bedrijven:")
+    for name,_ in pairs(companies) do
+        print("- " .. name)
+    end
+    print("\nTyp de naam van het bedrijf waarvan je de grafiek wilt zien:")
+    local comp = read()
+    if companies[comp] then
+        clearScreen()
+        local graphWidth = math.min(60, w - 4)
+        local graphHeight = math.min(15, h - 6)
+        local startX = math.floor((w - graphWidth) / 2) + 1
+        local startY = math.floor((h - graphHeight) / 2) + 1
+        drawGraph(comp, startX, startY, graphWidth, graphHeight)
+        print("\nDruk op Enter om terug te keren naar het menu.")
+        read()
+        clearScreen()
+    else
+        print("Bedrijf bestaat niet. Druk op Enter om terug te keren.")
+        read()
+        clearScreen()
+    end
+end
+
 function mainMenu()
     while true do
         print("\nKies een optie:")
         print("1. Koop aandelen")
         print("2. Verkoop aandelen")
         print("3. Toon portfolio")
-        print("4. Toon grafiek")
+        print("4. Toon grafiek van een bedrijf")
         print("5. Wacht op markt update")
         print("6. Exit")
         local choice = read()
@@ -339,21 +362,7 @@ function mainMenu()
         elseif choice == "3" then
             showPortfolio()
         elseif choice == "4" then
-            clearScreen()
-            print("Welke bedrijf grafiek wil je zien?")
-            local comp = read()
-            if companies[comp] then
-                local graphWidth = math.min(60, w - 4)
-                local graphHeight = math.min(15, h - 6)
-                local startX = math.floor((w - graphWidth) / 2)
-                local startY = math.floor((h - graphHeight) / 2)
-                drawGraph(comp, startX, startY, graphWidth, graphHeight)
-                print("\nDruk op Enter om terug te keren.")
-                read()
-                clearScreen()
-            else
-                print("Bedrijf bestaat niet.")
-            end
+            showGraphMenu()
         elseif choice == "5" then
             print("Markt wordt geüpdatet...")
             updateMarket()
