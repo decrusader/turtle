@@ -2,7 +2,21 @@ local fs = fs or {}
 
 local monitor = peripheral.find("monitor") or term
 monitor.setTextScale = monitor.setTextScale or function() end
-monitor.setTextScale(0.5)
+
+local function autoSetTextScale(monitor)
+    local w, h = monitor.getSize()
+    if w >= 80 then
+        monitor.setTextScale(0.5)
+    elseif w >= 40 then
+        monitor.setTextScale(1)
+    elseif w >= 20 then
+        monitor.setTextScale(2)
+    else
+        monitor.setTextScale(3)
+    end
+end
+
+autoSetTextScale(monitor)
 term.redirect(monitor)
 
 local dataFile = "stock_data.txt"
