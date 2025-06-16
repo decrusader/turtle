@@ -2,23 +2,27 @@ local fs = fs or {}
 
 local monitor = peripheral.find("monitor") or term
 monitor.setTextScale = monitor.setTextScale or function() end
+
 local w, h = monitor.getSize()
 
-local function autoSetTextScale(monitor)
-    local w, h = monitor.getSize()
-    if w >= 80 then
-        monitor.setTextScale(0.5)
-    elseif w >= 40 then
-        monitor.setTextScale(1)
-    elseif w >= 20 then
-        monitor.setTextScale(2)
-    else
-        monitor.setTextScale(3)
+-- Dynamische tekst schaal functie
+local function dynamicTextScale(w, h)
+    local scales = {4,3,2,1,0.5}
+    for i = 1, #scales do
+        local scale = scales[i]
+        local charsWide = math.floor(w / (scale * 6))
+        local charsHigh = math.floor(h / (scale * 9))
+        if charsWide >= 40 and charsHigh >= 15 then
+            return scale
+        end
     end
+    return 0.5
 end
 
-autoSetTextScale(monitor)
-w, h = monitor.getSize()
+local scale = dynamicTextScale(w, h)
+monitor.setTextScale(scale)
+w, h = monitor.getSize() -- opnieuw opvragen voor de nieuwe schaal
+
 term.redirect(monitor)
 
 local dataFile = "stock_data.txt"
@@ -32,7 +36,6 @@ local INFLATION_RATE = 0.01
 local CRASH_CHANCE = 0.01
 local PRICE_VOLATILITY = 0.05
 
--- Helper functies voor centreren tekst
 local function centerText(text, width)
     local padding = math.floor((width - #text) / 2)
     if padding < 0 then padding = 0 end
@@ -86,13 +89,9 @@ local function clearScreen()
     term.setCursorPos(1,1)
 end
 
--- Login functie met gecentreerde tekst
 local function login()
     clearScreen()
-    term.setCursorPos(1,1)
     local maxLines = 6
-
-    -- We centreren login prompt in midden scherm (h - maxLines)/2
     local startLine = math.floor((h - maxLines)/2)
 
     local function printCenteredLine(lineNum, text)
@@ -132,10 +131,8 @@ local function login()
                     error("Te veel mislukte pogingen, programma stopt.")
                 end
                 sleep(1.5)
-                -- Clear error message line
                 term.setCursorPos(1, startLine + 5)
                 term.clearLine()
-                -- Clear password input line
                 term.setCursorPos(1, startLine + 4)
                 term.clearLine()
             end
@@ -144,7 +141,6 @@ local function login()
     currentPlayer = name
 end
 
--- Loading animatie
 local function loadingAnimation(duration)
     clearScreen()
     local frames = {"-", "\\", "|", "/"}
@@ -160,8 +156,6 @@ local function loadingAnimation(duration)
     end
     clearScreen()
 end
-
--- Functies om aandelen te kopen, verkopen, tonen etc.
 
 function buyStock(company, amount)
     local c = companies[company]
