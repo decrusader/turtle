@@ -5,7 +5,6 @@ monitor.setTextScale = monitor.setTextScale or function() end
 
 local w, h = monitor.getSize()
 
--- Dynamische tekst schaal functie
 local function dynamicTextScale(w, h)
     local scales = {4,3,2,1,0.5}
     for i = 1, #scales do
@@ -21,7 +20,7 @@ end
 
 local scale = dynamicTextScale(w, h)
 monitor.setTextScale(scale)
-w, h = monitor.getSize() -- opnieuw opvragen voor de nieuwe schaal
+w, h = monitor.getSize()
 
 term.redirect(monitor)
 
@@ -37,7 +36,6 @@ local INFLATION_RATE = 0.01
 local CRASH_CHANCE = 0.01
 local PRICE_VOLATILITY = 0.05
 
--- Functie om log aan te maken en schrijven
 local function logInput(text)
     local file = fs.open(logFile, "a")
     file.writeLine(text)
@@ -97,22 +95,32 @@ local function clearScreen()
     term.setCursorPos(1,1)
 end
 
--- Custom readCentered input functie, met loggen
-local function readCenteredImproved(maxLength, y, prompt)
+-- Verbeterde readCentered die input toont als sterretjes als flag hidden = true
+-- Logt ook vraag + actuele invoer (zonder sterretjes!) op computer
+local function readCenteredImproved(maxLength, y, prompt, hidden)
     local input = ""
     term.setCursorBlink(true)
+    if prompt then
+        logInput("[Prompt] " .. prompt)
+    end
     while true do
-        local startX = math.floor((w - #input) / 2) + 1
+        local displayInput = input
+        if hidden then
+            displayInput = string.rep("*", #input)
+        end
+        local startX = math.floor((w - #displayInput) / 2) + 1
+        if prompt then
+            term.setCursorPos(1, y - 1)
+            term.clearLine()
+            term.write(centerText(prompt, w))
+        end
         term.setCursorPos(1, y)
         term.clearLine()
-        if prompt then
-            term.write(centerText(prompt, w))
-            y = y + 1
-            term.setCursorPos(1, y)
-            term.clearLine()
-        end
         term.setCursorPos(startX, y)
-        term.write(input)
+        term.write(displayInput)
+
+        -- Log actuele input elke keer als het verandert
+        logInput("[Input] " .. input)
 
         local event, param = os.pullEvent()
         if event == "char" then
@@ -122,7 +130,6 @@ local function readCenteredImproved(maxLength, y, prompt)
         elseif event == "key" then
             if param == keys.enter then
                 term.setCursorBlink(false)
-                logInput("[Input] " .. input)
                 return input
             elseif param == keys.backspace then
                 if #input > 0 then
@@ -147,11 +154,11 @@ local function login()
     printCenteredLine(startLine, "=== Login ===")
 
     printCenteredLine(startLine + 1, "Voer je naam in:")
-    local name = readCenteredImproved(20, startLine + 2)
+    local name = readCenteredImproved(20, startLine + 2, nil, false)
 
     if players[name] == nil then
         printCenteredLine(startLine + 3, "Nieuwe gebruiker! Maak een wachtwoord aan:")
-        local code = readCenteredImproved(20, startLine + 4)
+        local code = readCenteredImproved(20, startLine + 4, nil, true)
         players[name] = {balance=10000, stocks={}, code=code}
         saveData()
         printCenteredLine(startLine + 5, "Account aangemaakt! Welkom, " .. name)
@@ -160,7 +167,7 @@ local function login()
         local tries = 3
         while tries > 0 do
             printCenteredLine(startLine + 3, "Voer je code in:")
-            local code = readCenteredImproved(20, startLine + 4)
+            local code = readCenteredImproved(20, startLine + 4, nil, true)
             if code == players[name].code then
                 printCenteredLine(startLine + 5, "Succesvol ingelogd, welkom " .. name)
                 sleep(1.5)
@@ -196,7 +203,6 @@ local function loadingAnimation(duration)
     clearScreen()
 end
 
--- Koop functie met loggen
 function buyStock(company, amount)
     local c = companies[company]
     if not c then
@@ -217,7 +223,6 @@ function buyStock(company, amount)
     logInput("[Koop] Speler " .. currentPlayer .. " kocht " .. amount .. " aandelen van " .. company .. " voor $" .. string.format("%.2f", cost))
 end
 
--- Verkoop functie met loggen
 function sellStock(company, amount)
     local c = companies[company]
     if not c then
@@ -245,20 +250,18 @@ function updateMarket()
         if math.random() < CRASH_CHANCE then
             c.price = c.price * 0.5
         end
-        if c.price < 1 then c.price = 1 end -- minimale prijs
+        if c.price < 1 then c.price = 1 end
         table.insert(c.history, c.price)
         if #c.history > 40 then table.remove(c.history, 1) end
     end
 end
 
--- Functie om grafiek te tekenen van prijs historie
 local function drawGraph(company, x, y, width, height)
     local c = companies[company]
     if not c or #c.history == 0 then
         return
     end
 
-    -- Bereken max en min
     local maxPrice = -math.huge
     local minPrice = math.huge
     for _, price in ipairs(c.history) do
@@ -269,13 +272,11 @@ local function drawGraph(company, x, y, width, height)
     local range = maxPrice - minPrice
     if range == 0 then range = 1 end
 
-    -- Teken grafiek achtergrond
     for i = 0, height - 1 do
         term.setCursorPos(x, y + i)
         term.write(string.rep(" ", width))
     end
 
-    -- Teken grafiek lijn
     for i = 1, math.min(#c.history, width) do
         local price = c.history[#c.history - width + i]
         if price then
@@ -286,7 +287,6 @@ local function drawGraph(company, x, y, width, height)
         end
     end
 
-    -- Titel met naam en huidige prijs
     term.setCursorPos(x, y - 1)
     local title = company .. " - Prijs: $" .. string.format("%.2f", c.price)
     term.write(centerText(title, width))
@@ -343,7 +343,6 @@ function mainMenu()
             print("Welke bedrijf grafiek wil je zien?")
             local comp = read()
             if companies[comp] then
-                -- Teken grafiek centraal, ongeveer 60 breed en 15 hoog
                 local graphWidth = math.min(60, w - 4)
                 local graphHeight = math.min(15, h - 6)
                 local startX = math.floor((w - graphWidth) / 2)
@@ -370,5 +369,5 @@ end
 
 loadData()
 login()
-loadingAnimation(3)  -- 3 seconden loading animatie
+loadingAnimation(3)
 mainMenu()
