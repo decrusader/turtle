@@ -2,6 +2,7 @@ local fs = fs or {}
 
 local monitor = peripheral.find("monitor") or term
 monitor.setTextScale = monitor.setTextScale or function() end
+local w, h = monitor.getSize()
 
 local function autoSetTextScale(monitor)
     local w, h = monitor.getSize()
@@ -17,6 +18,7 @@ local function autoSetTextScale(monitor)
 end
 
 autoSetTextScale(monitor)
+w, h = monitor.getSize()
 term.redirect(monitor)
 
 local dataFile = "stock_data.txt"
@@ -29,6 +31,13 @@ local currentPlayer = nil
 local INFLATION_RATE = 0.01
 local CRASH_CHANCE = 0.01
 local PRICE_VOLATILITY = 0.05
+
+-- Helper functies voor centreren tekst
+local function centerText(text, width)
+    local padding = math.floor((width - #text) / 2)
+    if padding < 0 then padding = 0 end
+    return string.rep(" ", padding) .. text
+end
 
 local function serialize(tbl)
     return textutils.serialize(tbl)
@@ -72,36 +81,87 @@ local function saveData()
     filep.close()
 end
 
-local function login()
+local function clearScreen()
     term.clear()
-    print("=== Login ===")
-    print("Voer je naam in:")
+    term.setCursorPos(1,1)
+end
+
+-- Login functie met gecentreerde tekst
+local function login()
+    clearScreen()
+    term.setCursorPos(1,1)
+    local maxLines = 6
+
+    -- We centreren login prompt in midden scherm (h - maxLines)/2
+    local startLine = math.floor((h - maxLines)/2)
+
+    local function printCenteredLine(lineNum, text)
+        term.setCursorPos(1, lineNum)
+        term.clearLine()
+        term.write(centerText(text, w))
+    end
+
+    printCenteredLine(startLine, "=== Login ===")
+    printCenteredLine(startLine + 1, "Voer je naam in:")
+
+    term.setCursorPos(math.floor(w/2), startLine + 2)
     local name = read()
+
     if players[name] == nil then
-        print("Nieuwe gebruiker! Maak een wachtwoord aan:")
+        printCenteredLine(startLine + 3, "Nieuwe gebruiker! Maak een wachtwoord aan:")
+        term.setCursorPos(math.floor(w/2), startLine + 4)
         local code = read("*")
         players[name] = {balance=10000, stocks={}, code=code}
         saveData()
-        print("Account aangemaakt! Welkom, " .. name)
+        printCenteredLine(startLine + 5, "Account aangemaakt! Welkom, " .. name)
+        sleep(1.5)
     else
         local tries = 3
         while tries > 0 do
-            print("Voer je code in:")
+            printCenteredLine(startLine + 3, "Voer je code in:")
+            term.setCursorPos(math.floor(w/2), startLine + 4)
             local code = read("*")
             if code == players[name].code then
-                print("Succesvol ingelogd, welkom " .. name)
+                printCenteredLine(startLine + 5, "Succesvol ingelogd, welkom " .. name)
+                sleep(1.5)
                 break
             else
                 tries = tries - 1
-                print("Verkeerde code, nog " .. tries .. " pogingen.")
+                printCenteredLine(startLine + 5, "Verkeerde code, nog " .. tries .. " pogingen.")
                 if tries == 0 then
                     error("Te veel mislukte pogingen, programma stopt.")
                 end
+                sleep(1.5)
+                -- Clear error message line
+                term.setCursorPos(1, startLine + 5)
+                term.clearLine()
+                -- Clear password input line
+                term.setCursorPos(1, startLine + 4)
+                term.clearLine()
             end
         end
     end
     currentPlayer = name
 end
+
+-- Loading animatie
+local function loadingAnimation(duration)
+    clearScreen()
+    local frames = {"-", "\\", "|", "/"}
+    local centerY = math.floor(h / 2)
+    local centerX = math.floor(w / 2)
+    local startTime = os.clock()
+    while os.clock() - startTime < duration do
+        for i=1,#frames do
+            term.setCursorPos(centerX, centerY)
+            term.write(frames[i])
+            sleep(0.15)
+        end
+    end
+    clearScreen()
+end
+
+-- Functies om aandelen te kopen, verkopen, tonen etc.
 
 function buyStock(company, amount)
     local c = companies[company]
@@ -212,4 +272,5 @@ end
 
 loadData()
 login()
+loadingAnimation(3)  -- 3 seconden loading animatie
 mainMenu()
