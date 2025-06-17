@@ -97,9 +97,9 @@ end
 
 local function updateSpursFromRedstone()
     for _, user in pairs(users) do
-        if redstone.getInput(settings.redstoneSides.spur1) then user.spurs = (user.spurs or 0) + 1 end
-        if redstone.getInput(settings.redstoneSides.spur10) then user.spurs = (user.spurs or 0) + 10 end
-        if redstone.getInput(settings.redstoneSides.spur100) then user.spurs = (user.spurs or 0) + 100 end
+        if redstone.getInput("left") then user.spurs = (user.spurs or 0) + 1 end
+        if redstone.getInput("right") then user.spurs = (user.spurs or 0) + 10 end
+        if redstone.getInput("back") then user.spurs = (user.spurs or 0) + 100 end
     end
 end
 
