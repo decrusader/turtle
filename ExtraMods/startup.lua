@@ -1,408 +1,225 @@
-local fs = fs or {}
+-- Stock Market Program for CC:Tweaked with Redstone Spurs System
+-- Advanced Computer + Monitor support, full adaptive UI
+-- Save as: startup.lua
 
-local monitor = peripheral.find("monitor") or term
-monitor.setTextScale = monitor.setTextScale or function() end
+-- USER DATA AND SETTINGS
+local users = {}
+local settings = {
+    companyName = "SpurCorp",
+    stockValue = 10,
+    stockHistory = {10, 10.2, 10.4, 10.6, 10.8, 11.0},
+    stocksAvailable = 1000,
+    stockSoldPercentage = 0,
+    stocksNeededForBuyout = 500,
+    redstoneSides = {
+        spur1 = "left",
+        spur10 = "right",
+        spur100 = "back"
+    }
+}
 
-local w, h = monitor.getSize()
+-- TERMINAL AND MONITOR SETUP
+local termNative = term
+local monitor = peripheral.find("monitor")
+if monitor then monitor.setTextScale(0.5) end
 
-local function dynamicTextScale(w, h)
-    local scales = {4,3,2,1,0.5}
-    for i = 1, #scales do
-        local scale = scales[i]
-        local charsWide = math.floor(w / (scale * 6))
-        local charsHigh = math.floor(h / (scale * 9))
-        if charsWide >= 40 and charsHigh >= 15 then
-            return scale
-        end
-    end
-    return 0.5
+local function sync(fn)
+    fn(termNative)
+    if monitor then fn(monitor) end
 end
 
-local scale = dynamicTextScale(w, h)
-monitor.setTextScale(scale)
-w, h = monitor.getSize()
-
-term.redirect(monitor)
-
-local dataFile = "stock_data.txt"
-local playersFile = "players_data.txt"
-local logFile = "user_input_log.txt"
-
-local companies = {}
-local players = {}
-local currentPlayer = nil
-
-local INFLATION_RATE = 0.01
-local CRASH_CHANCE = 0.01
-local PRICE_VOLATILITY = 0.05
-
-local function logInput(text)
-    local file = fs.open(logFile, "a")
-    file.writeLine(text)
-    file.close()
+local function setCursorPos(x, y)
+    sync(function(d) d.setCursorPos(x, y) end)
 end
 
-local function centerText(text, width)
-    local padding = math.floor((width - #text) / 2)
-    if padding < 0 then padding = 0 end
-    return string.rep(" ", padding) .. text
+local function writeText(text)
+    sync(function(d) d.write(text) end)
 end
 
-local function serialize(tbl)
-    return textutils.serialize(tbl)
+local function setTextColor(color)
+    sync(function(d) d.setTextColor(color) end)
 end
 
-local function deserialize(str)
-    local ok, tbl = pcall(textutils.unserialize, str)
-    if ok then return tbl else return nil end
-end
-
-local function loadData()
-    if fs.exists(dataFile) then
-        local file = fs.open(dataFile, "r")
-        local content = file.readAll()
-        file.close()
-        local loaded = deserialize(content)
-        if loaded then companies = loaded end
-    else
-        companies = {
-            ["OpenAI"] = {price=100, history={100}, owners={}},
-            ["Minecraft Inc"] = {price=150, history={150}, owners={}}
-        }
-    end
-
-    if fs.exists(playersFile) then
-        local file = fs.open(playersFile, "r")
-        local content = file.readAll()
-        file.close()
-        local loaded = deserialize(content)
-        if loaded then players = loaded end
-    end
-end
-
-local function saveData()
-    local file = fs.open(dataFile, "w")
-    file.write(serialize(companies))
-    file.close()
-
-    local filep = fs.open(playersFile, "w")
-    filep.write(serialize(players))
-    filep.close()
+local function setBackgroundColor(color)
+    sync(function(d) d.setBackgroundColor(color) end)
 end
 
 local function clearScreen()
-    term.clear()
-    term.setCursorPos(1,1)
+    setBackgroundColor(colors.black)
+    sync(function(d) d.clear() end)
+    setCursorPos(1, 1)
 end
 
-local function readCenteredImproved(maxLength, y, prompt, hidden)
-    local input = ""
-    term.setCursorBlink(true)
-    if prompt then
-        logInput("[Prompt] " .. prompt)
+local function draw(text, x, y, color)
+    if color then setTextColor(color) end
+    setCursorPos(x, y)
+    writeText(text)
+end
+
+local function centerPrint(y, text, color)
+    local w = termNative.getSize()
+    local x = math.floor((w - #text) / 2)
+    draw(text, x, y, color)
+end
+
+local function readInput(prompt, hide)
+    setTextColor(colors.white)
+    writeText(prompt)
+    return hide and read("*") or read()
+end
+
+local function loadingScreen()
+    clearScreen()
+    centerPrint(5, "Loading", colors.yellow)
+    for i = 1, 3 do
+        sleep(0.3)
+        writeText(".")
     end
+    sleep(0.5)
+end
+
+local function drawGraph(xStart, yStart, width, height)
+    local maxVal = 0
+    for _, v in ipairs(settings.stockHistory) do
+        if v > maxVal then maxVal = v end
+    end
+    for i = 1, math.min(width, #settings.stockHistory) do
+        local val = settings.stockHistory[#settings.stockHistory - width + i] or 0
+        local heightPercent = val / maxVal
+        local barHeight = math.floor(heightPercent * height)
+        for j = 0, barHeight - 1 do
+            setCursorPos(xStart + i - 1, yStart + height - j)
+            setTextColor(colors.green)
+            writeText("|")
+        end
+    end
+end
+
+local function updateSpursFromRedstone()
+    for _, user in pairs(users) do
+        if redstone.getInput(settings.redstoneSides.spur1) then user.spurs = (user.spurs or 0) + 1 end
+        if redstone.getInput(settings.redstoneSides.spur10) then user.spurs = (user.spurs or 0) + 10 end
+        if redstone.getInput(settings.redstoneSides.spur100) then user.spurs = (user.spurs or 0) + 100 end
+    end
+end
+
+local function stockMenu(user)
     while true do
-        local displayInput = input
-        if hidden then
-            displayInput = string.rep("*", #input)
-        end
-        local startX = math.floor((w - #displayInput) / 2) + 1
-        if prompt then
-            term.setCursorPos(1, y - 1)
-            term.clearLine()
-            term.write(centerText(prompt, w))
-        end
-        term.setCursorPos(1, y)
-        term.clearLine()
-        term.setCursorPos(startX, y)
-        term.write(displayInput)
+        updateSpursFromRedstone()
+        clearScreen()
+        local w, h = termNative.getSize()
+        drawGraph(2, 2, math.min(w - 4, #settings.stockHistory), 10)
 
-        logInput("[Input] " .. input)
+        setTextColor(colors.cyan)
+        draw("Bedrijf: " .. settings.companyName, 2, 13)
+        draw("Waarde per aandeel: " .. settings.stockValue .. " Spurs", 2, 14)
+        draw("Je Spurs: " .. (user.spurs or 0), 2, 15)
+        draw("Je Aandelen: " .. (user.stocks or 0), 2, 16)
 
-        local event, param = os.pullEvent()
-        if event == "char" then
-            if #input < maxLength then
-                input = input .. param
-            end
-        elseif event == "key" then
-            if param == keys.enter then
-                term.setCursorBlink(false)
-                return input
-            elseif param == keys.backspace then
-                if #input > 0 then
-                    input = input:sub(1, -2)
+        setTextColor(colors.white)
+        draw("[1] Koop  [2] Verkoop  [3] Terug", 2, 18)
+        local choice = read()
+
+        if choice == "1" or choice == "2" then
+            draw("Aantal? (1/10/100/c): ", 2, 20)
+            local amountInput = read()
+            local amount = (amountInput == "c") and tonumber(readInput("Custom aantal: ")) or tonumber(amountInput)
+
+            if amount and amount > 0 then
+                if choice == "1" then
+                    local cost = amount * settings.stockValue
+                    if user.spurs >= cost and settings.stocksAvailable >= amount then
+                        user.spurs = user.spurs - cost
+                        user.stocks = (user.stocks or 0) + amount
+                        settings.stocksAvailable = settings.stocksAvailable - amount
+                        table.insert(settings.stockHistory, settings.stockValue + math.random(-5, 5) / 10)
+                    else
+                        draw("Niet genoeg spurs of aandelen.", 2, 23, colors.red)
+                    end
+                else
+                    if user.stocks >= amount then
+                        user.stocks = user.stocks - amount
+                        user.spurs = user.spurs + amount * settings.stockValue
+                        settings.stocksAvailable = settings.stocksAvailable + amount
+                        table.insert(settings.stockHistory, settings.stockValue + math.random(-5, 5) / 10)
+                    else
+                        draw("Niet genoeg aandelen.", 2, 23, colors.red)
+                    end
                 end
+                sleep(1.5)
             end
+        elseif choice == "3" then
+            break
         end
     end
 end
 
 local function login()
     clearScreen()
-    local maxLines = 6
-    local startLine = math.floor((h - maxLines)/2)
+    centerPrint(3, "LOGIN", colors.yellow)
+    local username = readInput("Gebruikersnaam: ")
+    local code = readInput("Pincode: ", true)
 
-    local function printCenteredLine(lineNum, text)
-        term.setCursorPos(1, lineNum)
-        term.clearLine()
-        term.write(centerText(text, w))
-    end
-
-    printCenteredLine(startLine, "=== Login ===")
-
-    printCenteredLine(startLine + 1, "Voer je naam in:")
-    local name = readCenteredImproved(20, startLine + 2, nil, false)
-
-    if players[name] == nil then
-        printCenteredLine(startLine + 3, "Nieuwe gebruiker! Maak een wachtwoord aan:")
-        local code = readCenteredImproved(20, startLine + 4, nil, true)
-        players[name] = {balance=10000, stocks={}, code=code}
-        saveData()
-        printCenteredLine(startLine + 5, "Account aangemaakt! Welkom, " .. name)
-        sleep(1.5)
-    else
-        local tries = 3
-        while tries > 0 do
-            printCenteredLine(startLine + 3, "Voer je code in:")
-            local code = readCenteredImproved(20, startLine + 4, nil, true)
-            if code == players[name].code then
-                printCenteredLine(startLine + 5, "Succesvol ingelogd, welkom " .. name)
-                sleep(1.5)
-                break
-            else
-                tries = tries - 1
-                printCenteredLine(startLine + 5, "Verkeerde code, nog " .. tries .. " pogingen.")
-                if tries == 0 then
-                    error("Te veel mislukte pogingen, programma stopt.")
-                end
-                sleep(1.5)
-                term.setCursorPos(1, startLine + 5)
-                term.clearLine()
-            end
-        end
-    end
-    currentPlayer = name
-end
-
-local function loadingAnimation(duration)
-    clearScreen()
-    local frames = {"-", "\\", "|", "/"}
-    local centerY = math.floor(h / 2)
-    local centerX = math.floor(w / 2)
-    local startTime = os.clock()
-    while os.clock() - startTime < duration do
-        for i=1,#frames do
-            term.setCursorPos(centerX, centerY)
-            term.write(frames[i])
-            sleep(0.15)
-        end
-    end
-    clearScreen()
-end
-
-function buyStock(company, amount)
-    local c = companies[company]
-    if not c then
-        print("Bedrijf bestaat niet.")
+    if not users[username] then
+        users[username] = { code = code, spurs = 0, stocks = 0 }
+    elseif users[username].code ~= code then
+        centerPrint(7, "Foute pincode!", colors.red)
+        sleep(2)
         return
     end
-    local cost = amount * c.price
-    local playerData = players[currentPlayer]
-    if playerData.balance < cost then
-        print("Niet genoeg saldo.")
-        return
-    end
-    playerData.balance = playerData.balance - cost
-    playerData.stocks[company] = (playerData.stocks[company] or 0) + amount
-    c.owners[currentPlayer] = (c.owners[currentPlayer] or 0) + amount
-    saveData()
-    print("Aandelen gekocht!")
-    logInput("[Koop] Speler " .. currentPlayer .. " kocht " .. amount .. " aandelen van " .. company .. " voor $" .. string.format("%.2f", cost))
+
+    loadingScreen()
+    stockMenu(users[username])
 end
 
-function sellStock(company, amount)
-    local c = companies[company]
-    if not c then
-        print("Bedrijf bestaat niet.")
-        return
-    end
-    local playerData = players[currentPlayer]
-    if (playerData.stocks[company] or 0) < amount then
-        print("Niet genoeg aandelen om te verkopen.")
-        return
-    end
-    local earnings = amount * c.price
-    playerData.balance = playerData.balance + earnings
-    playerData.stocks[company] = playerData.stocks[company] - amount
-    c.owners[currentPlayer] = c.owners[currentPlayer] - amount
-    saveData()
-    print("Aandelen verkocht!")
-    logInput("[Verkoop] Speler " .. currentPlayer .. " verkocht " .. amount .. " aandelen van " .. company .. " voor $" .. string.format("%.2f", earnings))
+local function configureRedstoneSides()
+    draw("Kies kant voor 1 Spur: ", 2, 9)
+    settings.redstoneSides.spur1 = read()
+    draw("Kies kant voor 10 Spurs: ", 2, 10)
+    settings.redstoneSides.spur10 = read()
+    draw("Kies kant voor 100 Spurs: ", 2, 11)
+    settings.redstoneSides.spur100 = read()
 end
 
-function updateMarket()
-    for name, c in pairs(companies) do
-        local change = 1 + (math.random() * 2 - 1) * PRICE_VOLATILITY
-        c.price = c.price * change * (1 + INFLATION_RATE)
-        if math.random() < CRASH_CHANCE then
-            c.price = c.price * 0.5
-        end
-        if c.price < 1 then c.price = 1 end
-        table.insert(c.history, c.price)
-        if #c.history > 40 then table.remove(c.history, 1) end
-    end
-end
-
-local function drawGraph(company, x, y, width, height)
-    local c = companies[company]
-    if not c or #c.history == 0 then return end
-
-    -- Bepaal max en min prijs in history
-    local maxPrice = -math.huge
-    local minPrice = math.huge
-    for _, price in ipairs(c.history) do
-        if price > maxPrice then maxPrice = price end
-        if price < minPrice then minPrice = price end
-    end
-    local range = maxPrice - minPrice
-    if range == 0 then range = 1 end
-
-    -- Maak lege grafiek achtergrond
-    for row = 0, height - 1 do
-        term.setCursorPos(x, y + row)
-        term.write(string.rep(" ", width))
-    end
-
-    local points = {}
-
-    -- Pak tot width aantal data punten (laatste data)
-    local startIndex = #c.history - width + 1
-    if startIndex < 1 then startIndex = 1 end
-
-    -- Bereken y-positie per datapunt
-    for i = startIndex, #c.history do
-        local price = c.history[i]
-        local relative = (price - minPrice) / range
-        local yPos = y + height - 1 - math.floor(relative * (height - 1))
-        table.insert(points, {x = x + i - startIndex, y = yPos})
-    end
-
-    -- Teken punten en verbind lijnen
-    for i, point in ipairs(points) do
-        term.setCursorPos(point.x, point.y)
-        term.write("*")
-        if i > 1 then
-            -- Verbind met vorige punt (verticaal of diagonaal)
-            local prev = points[i - 1]
-            local dx = point.x - prev.x
-            local dy = point.y - prev.y
-            -- Verticaal verbinden
-            if dy ~= 0 then
-                local step = dy > 0 and 1 or -1
-                for yy = prev.y + step, point.y - step, step do
-                    term.setCursorPos(point.x - 1, yy)
-                    term.write("|")
-                end
-            end
-            -- Horizontaal verbindingslijn al getekend door punten zelf (met "*")
-        end
-    end
-
-    -- Teken titel boven de grafiek
-    local title = company .. " - Prijs: $" .. string.format("%.2f", c.price)
-    term.setCursorPos(x, y - 1)
-    term.write(centerText(title, width))
-end
-
-function showPortfolio()
+local function settingsMenu()
     clearScreen()
-    local p = players[currentPlayer]
-    print("=== Portfolio voor " .. currentPlayer .. " ===")
-    print("Saldo: $" .. string.format("%.2f", p.balance))
-    for name, c in pairs(companies) do
-        local owned = p.stocks[name] or 0
-        local total = 0
-        for _, amount in pairs(c.owners) do total = total + amount end
-        local pct = total > 0 and (owned / total * 100) or 0
-        print(name .. ": " .. owned .. " aandelen (" .. string.format("%.2f", pct) .. "%)")
+    centerPrint(2, "Instellingen", colors.orange)
+    draw("[1] Verander naam", 2, 4)
+    draw("[2] Stock split", 2, 5)
+    draw("[3] Verkocht % instellen", 2, 6)
+    draw("[4] Aandelen voor overname", 2, 7)
+    draw("[5] Redstone inputs", 2, 8)
+    draw("[6] Terug", 2, 9)
+
+    local c = read()
+    if c == "1" then
+        draw("Nieuwe naam: ", 2, 11)
+        settings.companyName = read()
+    elseif c == "2" then
+        settings.stocksAvailable = settings.stocksAvailable * 2
+        settings.stockValue = math.max(1, settings.stockValue / 2)
+    elseif c == "3" then
+        draw("Nieuw percentage: ", 2, 11)
+        settings.stockSoldPercentage = tonumber(read()) or 0
+    elseif c == "4" then
+        draw("Nieuw aandelen doel: ", 2, 11)
+        settings.stocksNeededForBuyout = tonumber(read()) or 500
+    elseif c == "5" then
+        configureRedstoneSides()
     end
 end
 
-function showGraphMenu()
+-- MAIN LOOP
+while true do
+    updateSpursFromRedstone()
     clearScreen()
-    print(centerText("=== Grafiek Bekijken ===", w))
-    print("\nBeschikbare bedrijven:")
-    for name,_ in pairs(companies) do
-        print("- " .. name)
-    end
-    print("\nTyp de naam van het bedrijf waarvan je de grafiek wilt zien:")
-    local comp = read()
-    if companies[comp] then
-        clearScreen()
-        local graphWidth = math.min(60, w - 4)
-        local graphHeight = math.min(15, h - 6)
-        local startX = math.floor((w - graphWidth) / 2) + 1
-        local startY = math.floor((h - graphHeight) / 2) + 1
-        drawGraph(comp, startX, startY, graphWidth, graphHeight)
-        print("\nDruk op Enter om terug te keren naar het menu.")
-        print("\n")
-        read()
-        clearScreen()
-    else
-        print("Bedrijf bestaat niet. Druk op Enter om terug te keren.")
-        read()
-        clearScreen()
-    end
-end
+    centerPrint(3, "Stock Market", colors.green)
+    draw("[1] Instellingen", 4, 5)
+    draw("[2] Login", 4, 6)
+    draw("[3] Exit", 4, 7)
 
-function mainMenu()
-    while true do
-        print("\nKies een optie:")
-        print("1. Koop aandelen")
-        print("2. Verkoop aandelen")
-        print("3. Toon portfolio")
-        print("4. Toon grafiek van een bedrijf")
-        print("5. Wacht op markt update")
-        print("6. Exit")
-        local choice = read()
-        if choice == "1" then
-            print("Welk bedrijf?")
-            local comp = read()
-            print("Aantal aandelen?")
-            local amt = tonumber(read())
-            if amt and amt > 0 then
-                buyStock(comp, amt)
-            else
-                print("Ongeldig aantal.")
-            end
-        elseif choice == "2" then
-            print("Welk bedrijf?")
-            local comp = read()
-            print("Aantal aandelen te verkopen?")
-            local amt = tonumber(read())
-            if amt and amt > 0 then
-                sellStock(comp, amt)
-            else
-                print("Ongeldig aantal.")
-            end
-        elseif choice == "3" then
-            showPortfolio()
-        elseif choice == "4" then
-            showGraphMenu()
-        elseif choice == "5" then
-            print("Markt wordt geüpdatet...")
-            updateMarket()
-            saveData()
-        elseif choice == "6" then
-            print("Programma wordt afgesloten.")
-            break
-        else
-            print("Ongeldige keuze.")
-        end
-    end
+    local c = read()
+    if c == "1" then settingsMenu()
+    elseif c == "2" then login()
+    elseif c == "3" then break end
 end
-
-loadData()
-login()
-loadingAnimation(3)
-mainMenu()
