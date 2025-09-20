@@ -1,27 +1,36 @@
--- CoreLogic Pulsing Animatie
+-- CoreLogic Fade-in Animatie
 term.clear()
 term.setCursorPos(1,1)
 
--- Schermgrootte ophalen
+-- Schermgrootte
 local w, h = term.getSize()
 local text = "CoreLogic"
-local centerY = math.floor(h / 2)
 local centerX = math.floor((w - #text) / 2)
+local centerY = math.floor(h / 2)
 
--- Functie om tekst in het midden te schrijven
-local function centerWrite(text)
+-- Kleuren van donkergrijs naar wit (CC:Tweaked kleuren)
+local colors = {
+    colors.gray,
+    colors.lightGray,
+    colors.white
+}
+
+-- Functie om gecentreerde tekst te schrijven
+local function centerWrite(text, color)
+    term.setTextColor(color)
     term.setCursorPos(centerX, centerY)
     term.write(text)
 end
 
--- Puls animatie: tekst verschijnt en verdwijnt meerdere keren
-for i = 1, 6 do
+-- Fade-in animatie
+for _, color in ipairs(colors) do
     term.clear()
-    if i % 2 == 1 then
-        centerWrite(text)
-    end
-    sleep(0.4)
+    centerWrite(text, color)
+    sleep(0.5)
 end
+
+-- Zet kleur weer op wit
+term.setTextColor(colors.white)
 
 -- Eindbericht
 term.clear()
