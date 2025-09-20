@@ -1,4 +1,4 @@
--- CoreLogic Fade-in Animatie
+-- CoreLogic Smooth Fade-in Animatie
 term.clear()
 term.setCursorPos(1,1)
 
@@ -8,8 +8,9 @@ local text = "CoreLogic"
 local centerX = math.floor((w - #text) / 2)
 local centerY = math.floor(h / 2)
 
--- Kleuren van donkergrijs naar wit (CC:Tweaked kleuren)
-local colors = {
+-- Kleuren van donker naar licht (meerdere stappen voor smooth effect)
+local fadeColors = {
+    colors.black,
     colors.gray,
     colors.lightGray,
     colors.white
@@ -22,11 +23,13 @@ local function centerWrite(text, color)
     term.write(text)
 end
 
--- Fade-in animatie
-for _, color in ipairs(colors) do
-    term.clear()
-    centerWrite(text, color)
-    sleep(0.5)
+-- Smooth fade-in animatie
+for i = 1, #fadeColors do
+    for j = 1, 3 do  -- herhaal elke kleur kort voor vloeiendheid
+        term.clear()
+        centerWrite(text, fadeColors[i])
+        sleep(0.2)
+    end
 end
 
 -- Eindbericht
