@@ -18,7 +18,7 @@ local function downloadFile(url, filename)
 end
 
 -- Vervang deze URL door de raw link van jouw animation.lua
-local animationURL = "https://raw.githubusercontent.com/gebruikersnaam/repo/main/animation.lua"
+local animationURL = "https://github.com/decrusader/turtle/blob/main/OS/animation.lua"
 
 -- Controleer of animation.lua bestaat, anders downloaden
 if not fs.exists("animation.lua") then
