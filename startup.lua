@@ -29,9 +29,6 @@ for _, color in ipairs(colors) do
     sleep(0.5)
 end
 
--- Zet kleur weer op wit
-term.setTextColor(colors.white)
-
 -- Eindbericht
 term.clear()
 local finalText = "Welkom bij CoreLogic OS"
