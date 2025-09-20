@@ -1,44 +1,37 @@
--- startup.lua
--- CoreLogic login shrink-animatie voor CC:Tweaked
-
--- Maak scherm schoon
+-- CoreLogic Pulsing Animatie
 term.clear()
 term.setCursorPos(1,1)
 
 -- Schermgrootte ophalen
 local w, h = term.getSize()
+local text = "CoreLogic"
+local centerY = math.floor(h / 2)
+local centerX = math.floor((w - #text) / 2)
 
--- Frames voor de animatie
-local frames = {
-    "CoreLogic",
-    "CorLogi",
-    "CoLog",
-    "CLo",
-    "CL"
-}
-
--- Functie om tekst in het midden te tekenen
-local function centerWrite(text, y)
-    local x = math.floor((w - #text) / 2)
-    term.setCursorPos(x, y)
+-- Functie om tekst in het midden te schrijven
+local function centerWrite(text)
+    term.setCursorPos(centerX, centerY)
     term.write(text)
 end
 
--- Animatie afspelen
-for _, text in ipairs(frames) do
+-- Puls animatie: tekst verschijnt en verdwijnt meerdere keren
+for i = 1, 6 do
     term.clear()
-    centerWrite(text, math.floor(h / 2))
-    sleep(0.5)
+    if i % 2 == 1 then
+        centerWrite(text)
+    end
+    sleep(0.4)
 end
 
--- Eindscherm tonen
-sleep(0.5)
+-- Eindbericht
 term.clear()
-local final = "Welkom bij CoreLogic OS"
-centerWrite(final, math.floor(h / 2))
+local finalText = "Welkom bij CoreLogic OS"
+local fx = math.floor((w - #finalText) / 2)
+term.setCursorPos(fx, centerY)
+print(finalText)
 sleep(2)
 
--- Hier kan je je eigen "main menu" of programma starten
+-- Klaar voor gebruik
 term.clear()
 term.setCursorPos(1,1)
 print("CoreLogic OS is klaar voor gebruik!")
