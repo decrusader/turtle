@@ -1,46 +1,44 @@
--- CoreLogic Login Animatie
+-- startup.lua
+-- CoreLogic login shrink-animatie voor CC:Tweaked
+
+-- Maak scherm schoon
 term.clear()
 term.setCursorPos(1,1)
 
+-- Schermgrootte ophalen
 local w, h = term.getSize()
-local text = "CoreLogic"
-local x = math.floor((w - #text) / 2)
-local y = math.floor(h / 2)
 
--- Simpele typewriter animatie
-term.setCursorPos(x, y)
-for i = 1, #text do
-    term.write(text:sub(i,i))
-    sleep(0.1)
+-- Frames voor de animatie
+local frames = {
+    "CoreLogic",
+    "CorLogi",
+    "CoLog",
+    "CLo",
+    "CL"
+}
+
+-- Functie om tekst in het midden te tekenen
+local function centerWrite(text, y)
+    local x = math.floor((w - #text) / 2)
+    term.setCursorPos(x, y)
+    term.write(text)
 end
 
-sleep(0.5)
-
--- Extra animatie: pulserende blokjes
-for i = 1, 3 do
-    term.setCursorPos(x + #text + 1, y)
-    term.write(".")
-    sleep(0.2)
-    term.setCursorPos(x + #text + 2, y)
-    term.write(".")
-    sleep(0.2)
-    term.setCursorPos(x + #text + 3, y)
-    term.write(".")
-    sleep(0.2)
-
-    -- wissen
-    term.setCursorPos(x + #text + 1, y)
-    term.write("   ")
+-- Animatie afspelen
+for _, text in ipairs(frames) do
+    term.clear()
+    centerWrite(text, math.floor(h / 2))
+    sleep(0.5)
 end
 
+-- Eindscherm tonen
 sleep(0.5)
+term.clear()
+local final = "Welkom bij CoreLogic OS"
+centerWrite(final, math.floor(h / 2))
+sleep(2)
 
--- Klaar bericht
-term.setCursorPos(x, y + 2)
-print("Login succesvol!")
-sleep(1.5)
-
+-- Hier kan je je eigen "main menu" of programma starten
 term.clear()
 term.setCursorPos(1,1)
-print("Welkom bij CoreLogic OS")
-
+print("CoreLogic OS is klaar voor gebruik!")
