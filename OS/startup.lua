@@ -17,11 +17,23 @@ local function downloadFile(url, filename)
     end
 end
 
+-- Vervang deze URL door de raw link van jouw animation.lua
+local animationURL = "https://raw.githubusercontent.com/gebruikersnaam/repo/main/animation.lua"
+
 -- Controleer of animation.lua bestaat, anders downloaden
 if not fs.exists("animation.lua") then
-    -- Vervang deze URL door de raw link van jouw animation.lua
-    local animationURL = "https://github.com/decrusader/turtle/blob/main/OS/animation.lua"
     downloadFile(animationURL, "animation.lua")
+end
+
+-- Wacht tot het bestand echt bestaat
+local timeout = 5  -- aantal seconden om te wachten
+local start = os.time()
+while not fs.exists("animation.lua") do
+    sleep(0.5)
+    if os.time() - start > timeout then
+        print("Fout: animation.lua kon niet worden gevonden of gedownload.")
+        return
+    end
 end
 
 -- Laad en speel animatie af
