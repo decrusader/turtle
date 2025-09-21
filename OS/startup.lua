@@ -1,5 +1,5 @@
 -- startup.lua
--- CoreLogic OS met automatische updates + resume-functie
+-- CoreLogic OS met automatische updates + auto-resume state
 
 -- Download functie
 local function downloadFile(url, filename)
@@ -23,9 +23,8 @@ end
 
 -- Altijd opnieuw te downloaden bestanden
 local files = {
-    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/animation.lua", name = "animation.lua" },
-    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/PP.lua",        name = "PP.lua" },
-    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/resume.lua",    name = "resume.lua" }
+    { url = "https://raw.githubusercontent.com/<username>/<repo>/main/animation.lua", name = "animation.lua" },
+    { url = "https://raw.githubusercontent.com/<username>/<repo>/main/PP.lua",        name = "PP.lua" }
 }
 
 -- Download alle bestanden
@@ -53,4 +52,4 @@ term.clear()
 term.setCursorPos(1,1)
 print("CoreLogic OS klaar voor gebruik!")
 print("Typ een programma om te starten, bv:")
-print(" resume PP.lua")
+print(" PP.lua")
