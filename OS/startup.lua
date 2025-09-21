@@ -1,5 +1,5 @@
 -- startup.lua
--- CoreLogic OS startup met automatische download & mirrored execution
+-- CoreLogic OS startup met automatische download en mirrored animation
 
 -- Functie: download een bestand en toon animatie (minimaal 2 sec)
 local function downloadFile(url, filename)
@@ -32,10 +32,10 @@ local function downloadFile(url, filename)
     end
 end
 
--- URLs naar bestanden (RAW GitHub links)
+-- RAW GitHub links
 local files = {
-    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/animation.lua", name = "animation.lua" },
-    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/PP.lua",        name = "PP.lua" }
+    { url = "https://raw.githubusercontent.com/<username>/<repo>/main/animation.lua", name = "animation.lua" },
+    { url = "https://raw.githubusercontent.com/<username>/<repo>/main/PP.lua",        name = "PP.lua" }
 }
 
 -- Download ontbrekende bestanden
@@ -45,7 +45,7 @@ for _, file in ipairs(files) do
     end
 end
 
--- Zoek wired modem
+-- Zoek wired modem en aangesloten monitors
 local modem = peripheral.find("modem")
 local screens = {}
 if modem then
@@ -56,27 +56,27 @@ if modem then
     end
 end
 
--- Functie om programma lokaal én op alle schermen uit te voeren
-local function runProgram(programName)
-    -- Lokaal uitvoeren
-    if fs.exists(programName) then
-        dofile(programName)
-    else
-        print("Programma "..programName.." niet gevonden!")
-        return
-    end
-
-    -- Op alle aangesloten schermen uitvoeren (mirror)
+-- Functie om mirrored output te sturen naar schermen
+local function mirrorToScreens(msg)
     for _, screenName in ipairs(screens) do
         local mon = peripheral.wrap(screenName)
         if mon then
             mon.clear()
             mon.setCursorPos(1,1)
-            mon.write("Running "..programName.." ...")
+            mon.write(msg)
         end
     end
 end
 
--- Start CoreLogic animatie en PP
-runProgram("animation.lua")
-runProgram("PP.lua")
+-- === STARTUP SEQUENCE ===
+
+-- 1) Speel animatie altijd af
+mirrorToScreens("Starting Animation...")
+local animation = dofile("animation.lua")
+animation.play()
+
+-- Klaar voor gebruik
+term.clear()
+term.setCursorPos(1,1)
+print("CoreLogic OS klaar voor gebruik!")
+mirrorToScreens("CoreLogic OS klaar voor gebruik!")
