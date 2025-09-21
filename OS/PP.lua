@@ -111,7 +111,7 @@ local function askYesNo(prompt)
             if answer == "j" then return true end
             if answer == "n" then return false end
         end
-        print("Ongeldige invoer, probeer opnieuw.")
+        print("Ongeldige invoer, typ j of n.")
     end
 end
 
