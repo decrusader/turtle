@@ -45,9 +45,7 @@ end
 
 local function playNotification()
     for _, spk in ipairs(speakers) do
-        if spk then
-            spk.playSound("minecraft:note_block.pling")
-        end
+        if spk then spk.playSound("minecraft:note_block.pling") end
     end
 end
 
@@ -62,27 +60,10 @@ local function splitText(text, width)
     return lines
 end
 
-local function scaleTextForMonitor(mon, text)
-    local w, h = mon.getSize()
-    local lines = splitText(text, w)
-    if #lines > h then
-        local maxLines = h
-        lines = {}
-        for i = 1, maxLines do
-            if i == maxLines then
-                lines[i] = string.rep(".", w)
-            else
-                lines[i] = text:sub((i-1)*w +1, i*w)
-            end
-        end
-    end
-    return lines
-end
-
 local function showOnMonitor(mon, text)
     mon.clear()
     local w, h = mon.getSize()
-    local lines = scaleTextForMonitor(mon, text)
+    local lines = splitText(text, w)
     local startY = math.floor((h - #lines) / 2) + 1
     for i, line in ipairs(lines) do
         local x = math.floor((w - #line) / 2) + 1
@@ -116,9 +97,9 @@ end
 
 -- Laad state
 local state = loadState() or { slides = {}, current = 1, paused = false }
-local slideShown = {} -- houdt bij welke slides al notificatie kregen
+local slideShown = {}
 
--- Dia toevoegen als er nog geen slides zijn
+-- Voeg dia's toe als er nog geen slides zijn
 if #state.slides == 0 then
     while true do
         term.clear()
@@ -154,15 +135,13 @@ if #state.slides == 0 then
     return
 end
 
--- Check pauze
+-- Pauze check bij resume
 if state.paused then
     term.clear()
     term.setCursorPos(1,1)
-    print("Presentatie was gepauzeerd op dia " .. state.current)
+    print("Presentatie gepauzeerd op dia " .. state.current)
     local resume = askYesNo("Wil je hervatten?")
-    if not resume then
-        state.current = 1
-    end
+    if not resume then state.current = 1 end
     state.paused = false
     saveState(state)
 end
@@ -170,7 +149,7 @@ end
 -- Countdown
 term.clear()
 term.setCursorPos(1,1)
-print("Presentatie start/resume over 2 seconden...")
+print("Presentatie start over 2 seconden...")
 sleep(2)
 
 -- Slide loop
@@ -183,7 +162,7 @@ while state.current <= #state.slides do
         playNotification()
     end
 
-    -- Lokale schermen
+    -- Terminaal
     term.clear()
     local w, h = term.getSize()
     local lines = splitText(slide.text, w)
@@ -197,16 +176,14 @@ while state.current <= #state.slides do
         end
     end
 
-    -- Monitors
+    -- Monitoren
     showOnMonitors(slide.text)
 
-    -- Slide timer met events (fixed)
-    local timer = os.startTimer(slide.time)
-    while true do
-        local event, id = os.pullEvent()
-        if event == "timer" and id == timer then
-            break -- dia klaar
-        elseif event == "terminate" or event == "key" or event == "mouse_click" then
+    -- Slide timer met non-blocking event check
+    local startTime = os.clock()
+    while os.clock() - startTime < slide.time do
+        local event, id = os.pullEventRaw()
+        if event == "terminate" or event == "key" or event == "mouse_click" then
             state.paused = true
             saveState(state)
             term.clear()
@@ -214,6 +191,7 @@ while state.current <= #state.slides do
             print("Presentatie gepauzeerd. Hervat na reboot!")
             return
         end
+        sleep(0.05)
     end
 
     -- Volgende slide
