@@ -9,7 +9,6 @@ local function saveState(data)
     local f = fs.open(saveFile, "w")
     f.write(textutils.serializeJSON(data))
     f.close()
-    -- schrijf ook naar session.dat zodat startup weet wat te openen
     local s = fs.open(stateFile, "w")
     s.writeLine("PP.lua")
     s.close()
@@ -128,7 +127,6 @@ if #state.slides == 0 then
         print("Typ de tekst voor de dia, of 'klaar' om te stoppen.")
         term.write("Tekst: ")
         local text = read()
-
         if text == "klaar" then break end
         if text ~= "" then
             term.write("Duur (seconden): ")
@@ -202,11 +200,14 @@ while state.current <= #state.slides do
     -- Monitors
     showOnMonitors(slide.text)
 
-    -- Slide tijd
-    local startTime = os.clock()
-    while os.clock() - startTime < slide.time do
-        local ev = {os.pullEventRaw()}
-        if ev[1] == "terminate" or ev[1] == "key" or ev[1] == "mouse_click" then
+    -- Slide timer met events
+    local timer = os.startTimer(slide.time)
+    while true do
+        local event, id, ...
+        = os.pullEvent()
+        if event == "timer" and id == timer then
+            break -- dia klaar
+        elseif event == "terminate" or event == "key" or event == "mouse_click" then
             state.paused = true
             saveState(state)
             term.clear()
