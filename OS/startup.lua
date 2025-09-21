@@ -1,44 +1,46 @@
 -- startup.lua
--- CoreLogic OS startup met automatische bestand-download
+-- CoreLogic OS startup met simpele download-animatie
 
--- Functie om een bestand te downloaden
+-- Functie: download een bestand en toon animatie
 local function downloadFile(url, filename)
-    print("Downloading "..filename.."...")
+    term.clear()
+    term.setCursorPos(1,1)
+    print("Downloading:")
+
     local response = http.get(url)
     if response then
         local content = response.readAll()
         response.close()
+
         local f = fs.open(filename, "w")
         f.write(content)
         f.close()
-        print(filename.." downloaded successfully!")
+
+        -- Simpele animatie: ".", "..", "...", "."
+        for i = 1, 2 do
+            term.setCursorPos(1,3)
+            print(".  ") sleep(0.3)
+            term.setCursorPos(1,3)
+            print(".. ") sleep(0.3)
+            term.setCursorPos(1,3)
+            print("...") sleep(0.3)
+        end
     else
         print("Fout: kon "..filename.." niet downloaden!")
     end
 end
 
--- Vervang deze URL door de raw link van jouw animation.lua
-local animationURL = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/animation.lua"
+-- URL naar animation.lua (moet RAW GitHub link zijn!)
+local animationURL = "https://raw.githubusercontent.com/<username>/<repo>/main/animation.lua"
 
--- Controleer of animation.lua bestaat, anders downloaden
+-- Als animation.lua niet bestaat, downloaden
 if not fs.exists("animation.lua") then
     downloadFile(animationURL, "animation.lua")
-end
-
--- Wacht tot het bestand echt bestaat
-local timeout = 5  -- aantal seconden om te wachten
-local start = os.time()
-while not fs.exists("animation.lua") do
-    sleep(0.5)
-    if os.time() - start > timeout then
-        print("Fout: animation.lua kon niet worden gevonden of gedownload.")
-        return
-    end
 end
 
 -- Laad en speel animatie af
 local animation = dofile("animation.lua")
 animation.play()
 
--- Hier kan je je eigen OS starten, bv:
+-- Hierna kan je eigen OS starten, bv:
 -- dofile("main.lua")
