@@ -1,5 +1,5 @@
 -- PP.lua
--- Presentatie Player (loopt tot key of klik, mirrored op monitors)
+-- Presentatie Player met tekstschaling per monitor
 
 -- Zoek wired modem en aangesloten monitors
 local modem = peripheral.find("modem")
@@ -12,17 +12,33 @@ if modem then
     end
 end
 
--- Functie om tekst mirrored op alle monitors te tonen
+-- Functie: toon tekst geschaald op een monitor
+local function showOnMonitor(mon, text)
+    mon.clear()
+    local w, h = mon.getSize()
+
+    -- Als tekst langer is dan schermbreedte, inkorten met "..."
+    local displayText = text
+    if #text > w then
+        if w > 3 then
+            displayText = text:sub(1, w-3) .. "..."
+        else
+            displayText = string.rep(".", w)
+        end
+    end
+
+    local x = math.floor((w - #displayText) / 2)
+    local y = math.floor(h / 2)
+    mon.setCursorPos(x, y)
+    mon.write(displayText)
+end
+
+-- Toon tekst op alle monitors
 local function showOnMonitors(text)
     for _, screenName in ipairs(screens) do
         local mon = peripheral.wrap(screenName)
         if mon then
-            mon.clear()
-            local w, h = mon.getSize()
-            local x = math.floor((w - #text) / 2)
-            local y = math.floor(h / 2)
-            mon.setCursorPos(x, y)
-            mon.write(text)
+            showOnMonitor(mon, text)
         end
     end
 end
@@ -75,8 +91,16 @@ local function playSlides()
         local w, h = term.getSize()
         local x = math.floor((w - #slide.text) / 2)
         local y = math.floor(h / 2)
+        local displayText = slide.text
+        if #displayText > w then
+            if w > 3 then
+                displayText = displayText:sub(1, w-3) .. "..."
+            else
+                displayText = string.rep(".", w)
+            end
+        end
         term.setCursorPos(x, y)
-        print(slide.text)
+        print(displayText)
 
         -- Toon op alle monitors
         showOnMonitors(slide.text)
