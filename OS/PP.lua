@@ -1,5 +1,5 @@
 -- PP.lua
--- Presentatie Player met multi-line scaling per monitor
+-- Presentatie Player met geschaalde tekst voor kleine schermen
 
 -- Zoek wired modem en aangesloten monitors
 local modem = peripheral.find("modem")
@@ -12,7 +12,7 @@ if modem then
     end
 end
 
--- Functie: splits lange tekst in meerdere regels passend bij de breedte
+-- Functie: splits lange tekst in meerdere regels
 local function splitText(text, width)
     local lines = {}
     local start = 1
@@ -24,11 +24,31 @@ local function splitText(text, width)
     return lines
 end
 
--- Toon tekst geschaald en gesplitst op 1 monitor
+-- Functie: schaal tekst voor monitoren
+local function scaleTextForMonitor(mon, text)
+    local w, h = mon.getSize()
+    -- Als tekst te breed is, probeer in meerdere regels
+    local lines = splitText(text, w)
+    -- Als er nog steeds meer lijnen zijn dan hoogtescherm, gebruik verkorte weergave
+    if #lines > h then
+        local maxLines = h
+        lines = {}
+        for i = 1, maxLines do
+            if i == maxLines then
+                lines[i] = string.rep(".", w) -- placeholder voor te lange tekst
+            else
+                lines[i] = text:sub((i-1)*w +1, i*w)
+            end
+        end
+    end
+    return lines
+end
+
+-- Toon tekst op een monitor
 local function showOnMonitor(mon, text)
     mon.clear()
     local w, h = mon.getSize()
-    local lines = splitText(text, w)
+    local lines = scaleTextForMonitor(mon, text)
     local startY = math.floor((h - #lines) / 2) + 1
     for i, line in ipairs(lines) do
         local x = math.floor((w - #line) / 2) + 1
@@ -97,7 +117,7 @@ local function playSlides()
         term.clear()
         -- Lokaal scherm
         local w, h = term.getSize()
-        local lines = splitText(slide.text, w)
+        local lines = scaleTextForMonitor({getSize=function() return w,h end, setCursorPos=function() end, write=function() end}, slide.text)
         local startY = math.floor((h - #lines) / 2) + 1
         for i, line in ipairs(lines) do
             local x = math.floor((w - #line) / 2) + 1
@@ -122,12 +142,8 @@ parallel.waitForAny(
             playSlides()
         end
     end,
-    function()
-        os.pullEvent("key")
-    end,
-    function()
-        os.pullEvent("mouse_click")
-    end
+    function() os.pullEvent("key") end,
+    function() os.pullEvent("mouse_click") end
 )
 
 -- Stop
