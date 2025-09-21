@@ -1,5 +1,5 @@
 -- startup.lua
--- CoreLogic OS startup met simpele download-animatie
+-- CoreLogic OS startup met download-animatie (zonder laatste ".")
 
 -- Functie: download een bestand en toon animatie
 local function downloadFile(url, filename)
@@ -16,8 +16,9 @@ local function downloadFile(url, filename)
         f.write(content)
         f.close()
 
-        -- Simpele animatie: ".", "..", "...", "."
-        for i = 1, 2 do
+        -- Animatie minimaal 2 seconden
+        local startTime = os.clock()
+        while os.clock() - startTime < 2 do
             term.setCursorPos(1,3)
             print(".  ") sleep(0.3)
             term.setCursorPos(1,3)
@@ -30,7 +31,7 @@ local function downloadFile(url, filename)
     end
 end
 
--- URL naar animation.lua (moet RAW GitHub link zijn!)
+-- URL naar animation.lua (RAW GitHub link!)
 local animationURL = "https://raw.githubusercontent.com/<username>/<repo>/main/animation.lua"
 
 -- Als animation.lua niet bestaat, downloaden
@@ -42,5 +43,5 @@ end
 local animation = dofile("animation.lua")
 animation.play()
 
--- Hierna kan je eigen OS starten, bv:
+-- Hier kan je OS starten, bv:
 -- dofile("main.lua")
