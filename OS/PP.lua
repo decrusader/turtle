@@ -200,11 +200,10 @@ while state.current <= #state.slides do
     -- Monitors
     showOnMonitors(slide.text)
 
-    -- Slide timer met events
+    -- Slide timer met events (fixed)
     local timer = os.startTimer(slide.time)
     while true do
-        local event, id, ...
-        = os.pullEvent()
+        local event, id = os.pullEvent()
         if event == "timer" and id == timer then
             break -- dia klaar
         elseif event == "terminate" or event == "key" or event == "mouse_click" then
