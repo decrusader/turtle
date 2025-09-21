@@ -1,7 +1,7 @@
 -- startup.lua
--- CoreLogic OS startup met automatische download van meerdere bestanden
+-- CoreLogic OS startup met automatische download & mirrored execution
 
--- Functie: download een bestand en toon animatie (minimaal 2 sec met . .. ...)
+-- Functie: download een bestand en toon animatie (minimaal 2 sec)
 local function downloadFile(url, filename)
     term.clear()
     term.setCursorPos(1,1)
@@ -28,12 +28,13 @@ local function downloadFile(url, filename)
         end
     else
         print("Fout: kon "..filename.." niet downloaden!")
+        sleep(2)
     end
 end
 
--- URLs naar bestanden (vervang door jouw GitHub RAW links!)
+-- URLs naar bestanden (RAW GitHub links)
 local files = {
-    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/animation.lua", name = "animation.lua" },
+    { url = "https://raw.githubusercontent.com/<username>/<repo>/main/animation.lua", name = "animation.lua" },
     { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/PP.lua",        name = "PP.lua" }
 }
 
@@ -44,9 +45,38 @@ for _, file in ipairs(files) do
     end
 end
 
--- Laad en speel animatie af
-local animation = dofile("animation.lua")
-animation.play()
+-- Zoek wired modem
+local modem = peripheral.find("modem")
+local screens = {}
+if modem then
+    for _, name in ipairs(peripheral.getNames()) do
+        if peripheral.getType(name) == "monitor" then
+            table.insert(screens, name)
+        end
+    end
+end
 
--- Hier kan je OS starten, bv:
--- dofile("main.lua")
+-- Functie om programma lokaal én op alle schermen uit te voeren
+local function runProgram(programName)
+    -- Lokaal uitvoeren
+    if fs.exists(programName) then
+        dofile(programName)
+    else
+        print("Programma "..programName.." niet gevonden!")
+        return
+    end
+
+    -- Op alle aangesloten schermen uitvoeren (mirror)
+    for _, screenName in ipairs(screens) do
+        local mon = peripheral.wrap(screenName)
+        if mon then
+            mon.clear()
+            mon.setCursorPos(1,1)
+            mon.write("Running "..programName.." ...")
+        end
+    end
+end
+
+-- Start CoreLogic animatie en PP
+runProgram("animation.lua")
+runProgram("PP.lua")
