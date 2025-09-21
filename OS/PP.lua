@@ -1,5 +1,5 @@
 -- PP.lua
--- Presentatie Player met autosave, resume, pauze en speaker notificatie
+-- Presentatie Player met autosave, resume, pauze en speaker notificatie (continuous loop)
 
 local stateFile = "session.dat"
 local saveFile  = "pp_state.json"
@@ -97,7 +97,6 @@ end
 
 -- Laad state
 local state = loadState() or { slides = {}, current = 1, paused = false }
-local slideShown = {}
 
 -- Voeg dia's toe als er nog geen slides zijn
 if #state.slides == 0 then
@@ -152,56 +151,50 @@ term.setCursorPos(1,1)
 print("Presentatie start over 2 seconden...")
 sleep(2)
 
--- Slide loop
-while state.current <= #state.slides do
-    local slide = state.slides[state.current]
+-- Slide loop (continu)
+while true do
+    for i = 1, #state.slides do
+        state.current = i
+        local slide = state.slides[i]
 
-    -- Notification bij nieuwe slide
-    if not slideShown[state.current] then
-        slideShown[state.current] = true
-        playNotification()
-    end
-
-    -- Terminaal
-    term.clear()
-    local w, h = term.getSize()
-    local lines = splitText(slide.text, w)
-    local startY = math.floor((h - #lines) / 2) + 1
-    for i, line in ipairs(lines) do
-        local x = math.floor((w - #line) / 2) + 1
-        local y = startY + i - 1
-        if y <= h then
-            term.setCursorPos(x, y)
-            term.write(line)
+        -- Notification bij nieuwe slide
+        if not slide.notificationDone then
+            slide.notificationDone = true
+            playNotification()
         end
-    end
 
-    -- Monitoren
-    showOnMonitors(slide.text)
-
-    -- Slide timer met non-blocking event check
-    local startTime = os.clock()
-    while os.clock() - startTime < slide.time do
-        local event, id = os.pullEventRaw()
-        if event == "terminate" or event == "key" or event == "mouse_click" then
-            state.paused = true
-            saveState(state)
-            term.clear()
-            term.setCursorPos(1,1)
-            print("Presentatie gepauzeerd. Hervat na reboot!")
-            return
+        -- Terminaal
+        term.clear()
+        local w, h = term.getSize()
+        local lines = splitText(slide.text, w)
+        local startY = math.floor((h - #lines) / 2) + 1
+        for j, line in ipairs(lines) do
+            local x = math.floor((w - #line) / 2) + 1
+            local y = startY + j - 1
+            if y <= h then
+                term.setCursorPos(x, y)
+                term.write(line)
+            end
         end
-        sleep(0.05)
-    end
 
-    -- Volgende slide
-    state.current = state.current + 1
-    saveState(state)
+        -- Monitoren
+        showOnMonitors(slide.text)
+
+        -- Slide timer met non-blocking event check
+        local startTime = os.clock()
+        while os.clock() - startTime < slide.time do
+            local event, id = os.pullEventRaw()
+            if event == "terminate" or event == "key" or event == "mouse_click" then
+                state.paused = true
+                saveState(state)
+                term.clear()
+                term.setCursorPos(1,1)
+                print("Presentatie gepauzeerd. Hervat na reboot!")
+                return
+            end
+            sleep(0.05)
+        end
+
+        saveState(state)
+    end
 end
-
--- Klaar
-term.clear()
-term.setCursorPos(1,1)
-print("Presentatie voltooid!")
-clearState()
-for _, mon in ipairs(monitors) do mon.clear() end
