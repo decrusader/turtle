@@ -157,11 +157,8 @@ while true do
         state.current = i
         local slide = state.slides[i]
 
-        -- Notification bij nieuwe slide
-        if not slide.notificationDone then
-            slide.notificationDone = true
-            playNotification()
-        end
+        -- Notification bij elke keer dat dia opnieuw wordt getoond
+        playNotification()
 
         -- Terminaal
         term.clear()
