@@ -22,7 +22,7 @@ local function downloadFile(url, filename)
             sleep(2)
         end
     else
-        print("❌ Fout: kon " .. filename .. " niet downloaden!")
+        print(" Fout: kon " .. filename .. " niet downloaden!")
         sleep(2)
     end
 end
