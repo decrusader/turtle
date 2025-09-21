@@ -36,7 +36,7 @@ for _, name in ipairs(peripheral.getNames()) do
     end
 end
 
--- Zoek speakers via wired modem
+-- Zoek speakers
 local speakers = {}
 for _, name in ipairs(peripheral.getNames()) do
     if peripheral.getType(name) == "speaker" then
@@ -47,7 +47,6 @@ end
 local function playNotification()
     for _, spk in ipairs(speakers) do
         if spk then
-            -- Speel toon op speaker
             spk.playSound("minecraft:note_block.pling")
         end
     end
@@ -102,6 +101,20 @@ local function showOnMonitors(text)
     end
 end
 
+-- Veilige j/n prompt
+local function askYesNo(prompt)
+    while true do
+        term.write(prompt .. " (j/n): ")
+        local answer = read()
+        if answer then
+            answer = answer:lower()
+            if answer == "j" then return true end
+            if answer == "n" then return false end
+        end
+        print("Ongeldige invoer, probeer opnieuw.")
+    end
+end
+
 -- Laad state
 local state = loadState() or { slides = {}, current = 1, paused = false }
 local slideShown = {} -- houdt bij welke slides al notificatie kregen
@@ -148,9 +161,8 @@ if state.paused then
     term.clear()
     term.setCursorPos(1,1)
     print("Presentatie was gepauzeerd op dia " .. state.current)
-    print("Wil je hervatten? (j/n)")
-    local answer = read()
-    if answer:lower() ~= "j" then
+    local resume = askYesNo("Wil je hervatten?")
+    if not resume then
         state.current = 1
     end
     state.paused = false
