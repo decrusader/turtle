@@ -1,5 +1,5 @@
 -- startup.lua
--- CoreLogic OS startup met automatische download en mirrored animation
+-- CoreLogic OS startup met mirrored animation (geen permanente tekst)
 
 -- Functie: download een bestand en toon animatie (minimaal 2 sec)
 local function downloadFile(url, filename)
@@ -68,6 +68,16 @@ local function mirrorToScreens(msg)
     end
 end
 
+-- Functie om monitors te clearen
+local function clearScreens()
+    for _, screenName in ipairs(screens) do
+        local mon = peripheral.wrap(screenName)
+        if mon then
+            mon.clear()
+        end
+    end
+end
+
 -- === STARTUP SEQUENCE ===
 
 -- 1) Speel animatie altijd af
@@ -75,8 +85,10 @@ mirrorToScreens("Starting Animation...")
 local animation = dofile("animation.lua")
 animation.play()
 
--- Klaar voor gebruik
+-- 2) Clear de mirrored monitors zodat programma's later hun eigen output kunnen tonen
+clearScreens()
+
+-- 3) Terminal klaar voor gebruik
 term.clear()
 term.setCursorPos(1,1)
 print("CoreLogic OS klaar voor gebruik!")
-mirrorToScreens("CoreLogic OS klaar voor gebruik!")
