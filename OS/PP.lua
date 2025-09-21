@@ -1,13 +1,15 @@
 -- PP.lua
--- Presentatie Player met autosave, resume, pauze en speaker notificatie (continuous loop)
+-- CoreLogic Presentatie Player - continuous loop, monitors, speakers, autosave
 
 local stateFile = "session.dat"
 local saveFile  = "pp_state.json"
 
--- JSON helpers
-local function saveState(data)
+-- =========================
+-- Helper functies voor state
+-- =========================
+local function saveState(state)
     local f = fs.open(saveFile, "w")
-    f.write(textutils.serializeJSON(data))
+    f.write(textutils.serializeJSON(state))
     f.close()
     local s = fs.open(stateFile, "w")
     s.writeLine("PP.lua")
@@ -27,20 +29,15 @@ local function clearState()
     if fs.exists(stateFile) then fs.delete(stateFile) end
 end
 
--- Zoek monitors
+-- =========================
+-- Detecteer monitors en speakers
+-- =========================
 local monitors = {}
-for _, name in ipairs(peripheral.getNames()) do
-    if peripheral.getType(name) == "monitor" then
-        table.insert(monitors, peripheral.wrap(name))
-    end
-end
-
--- Zoek speakers
 local speakers = {}
 for _, name in ipairs(peripheral.getNames()) do
-    if peripheral.getType(name) == "speaker" then
-        table.insert(speakers, peripheral.wrap(name))
-    end
+    local t = peripheral.getType(name)
+    if t == "monitor" then table.insert(monitors, peripheral.wrap(name))
+    elseif t == "speaker" then table.insert(speakers, peripheral.wrap(name)) end
 end
 
 local function playNotification()
@@ -49,12 +46,14 @@ local function playNotification()
     end
 end
 
--- Helpers voor tekst
+-- =========================
+-- Teksthelpers
+-- =========================
 local function splitText(text, width)
-    local lines, start = {}, 1
+    local lines = {}
+    local start = 1
     while start <= #text do
-        local chunk = text:sub(start, start + width - 1)
-        table.insert(lines, chunk)
+        table.insert(lines, text:sub(start, start + width - 1))
         start = start + width
     end
     return lines
@@ -64,9 +63,9 @@ local function showOnMonitor(mon, text)
     mon.clear()
     local w, h = mon.getSize()
     local lines = splitText(text, w)
-    local startY = math.floor((h - #lines) / 2) + 1
+    local startY = math.floor((h - #lines)/2) + 1
     for i, line in ipairs(lines) do
-        local x = math.floor((w - #line) / 2) + 1
+        local x = math.floor((w - #line)/2) + 1
         local y = startY + i - 1
         if y <= h then
             mon.setCursorPos(x, y)
@@ -76,44 +75,45 @@ local function showOnMonitor(mon, text)
 end
 
 local function showOnMonitors(text)
-    for _, mon in ipairs(monitors) do
-        showOnMonitor(mon, text)
-    end
+    for _, mon in ipairs(monitors) do showOnMonitor(mon, text) end
 end
 
--- Veilige j/n prompt
+-- =========================
+-- j/n prompt
+-- =========================
 local function askYesNo(prompt)
     while true do
         term.write(prompt .. " (j/n): ")
-        local answer = read()
-        if answer then
-            answer = answer:lower()
-            if answer == "j" then return true end
-            if answer == "n" then return false end
+        local ans = read()
+        if ans then
+            ans = ans:lower()
+            if ans == "j" then return true end
+            if ans == "n" then return false end
         end
         print("Ongeldige invoer, typ j of n.")
     end
 end
 
--- Laad state
+-- =========================
+-- Laad of bouw slides
+-- =========================
 local state = loadState() or { slides = {}, current = 1, paused = false }
 
--- Voeg dia's toe als er nog geen slides zijn
 if #state.slides == 0 then
     while true do
         term.clear()
         term.setCursorPos(1,1)
         print("=== Presentatie Builder ===")
-        print("Typ de tekst voor de dia, of 'klaar' om te stoppen.")
+        print("Typ de tekst voor een dia, of 'klaar' om te stoppen.")
         term.write("Tekst: ")
         local text = read()
         if text == "klaar" then break end
         if text ~= "" then
             term.write("Duur (seconden): ")
-            local duration = tonumber(read())
-            if duration and duration > 0 then
-                table.insert(state.slides, {text=text, time=duration})
-                print("Dia toegevoegd! ("..text.." - "..duration.."s)")
+            local dur = tonumber(read())
+            if dur and dur > 0 then
+                table.insert(state.slides, {text=text, time=dur})
+                print("Dia toegevoegd! ("..text.." - "..dur.."s)")
                 sleep(1)
             else
                 print("Ongeldige tijd, probeer opnieuw.")
@@ -134,7 +134,9 @@ if #state.slides == 0 then
     return
 end
 
+-- =========================
 -- Pauze check bij resume
+-- =========================
 if state.paused then
     term.clear()
     term.setCursorPos(1,1)
@@ -151,22 +153,24 @@ term.setCursorPos(1,1)
 print("Presentatie start over 2 seconden...")
 sleep(2)
 
--- Slide loop (continu)
+-- =========================
+-- Main loop (continuous)
+-- =========================
 while true do
     for i = 1, #state.slides do
         state.current = i
         local slide = state.slides[i]
 
-        -- Notification bij elke keer dat dia opnieuw wordt getoond
+        -- Speel notification elke keer
         playNotification()
 
-        -- Terminaal
+        -- Terminal weergave
         term.clear()
         local w, h = term.getSize()
         local lines = splitText(slide.text, w)
-        local startY = math.floor((h - #lines) / 2) + 1
+        local startY = math.floor((h - #lines)/2) + 1
         for j, line in ipairs(lines) do
-            local x = math.floor((w - #line) / 2) + 1
+            local x = math.floor((w - #line)/2) + 1
             local y = startY + j - 1
             if y <= h then
                 term.setCursorPos(x, y)
@@ -177,7 +181,7 @@ while true do
         -- Monitoren
         showOnMonitors(slide.text)
 
-        -- Slide timer met non-blocking event check
+        -- Timer met non-blocking event check
         local startTime = os.clock()
         while os.clock() - startTime < slide.time do
             local event, id = os.pullEventRaw()
