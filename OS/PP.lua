@@ -5,7 +5,7 @@ local stateFile = "session.dat"
 local saveFile  = "pp_state.json"
 
 -- =========================
--- Helper functies voor state
+-- Helper functies
 -- =========================
 local function saveState(state)
     local f = fs.open(saveFile, "w")
@@ -30,7 +30,7 @@ local function clearState()
 end
 
 -- =========================
--- Detecteer monitors en speakers
+-- Peripherals
 -- =========================
 local monitors = {}
 local speakers = {}
@@ -47,7 +47,7 @@ local function playNotification()
 end
 
 -- =========================
--- Teksthelpers
+-- Tekst weergave
 -- =========================
 local function splitText(text, width)
     local lines = {}
@@ -156,46 +156,50 @@ sleep(2)
 -- =========================
 -- Main loop (continuous)
 -- =========================
+local totalSlides = #state.slides
+local currentIndex = state.current
+
 while true do
-    for i = 1, #state.slides do
-        state.current = i
-        local slide = state.slides[i]
+    local slide = state.slides[currentIndex]
 
-        -- Speel notification elke keer
-        playNotification()
-
-        -- Terminal weergave
-        term.clear()
-        local w, h = term.getSize()
-        local lines = splitText(slide.text, w)
-        local startY = math.floor((h - #lines)/2) + 1
-        for j, line in ipairs(lines) do
-            local x = math.floor((w - #line)/2) + 1
-            local y = startY + j - 1
-            if y <= h then
-                term.setCursorPos(x, y)
-                term.write(line)
-            end
+    -- Terminal weergave
+    term.clear()
+    local w, h = term.getSize()
+    local lines = splitText(slide.text, w)
+    local startY = math.floor((h - #lines)/2) + 1
+    for j, line in ipairs(lines) do
+        local x = math.floor((w - #line)/2) + 1
+        local y = startY + j - 1
+        if y <= h then
+            term.setCursorPos(x, y)
+            term.write(line)
         end
-
-        -- Monitoren
-        showOnMonitors(slide.text)
-
-        -- Timer met non-blocking event check
-        local startTime = os.clock()
-        while os.clock() - startTime < slide.time do
-            local event, id = os.pullEventRaw()
-            if event == "terminate" or event == "key" or event == "mouse_click" then
-                state.paused = true
-                saveState(state)
-                term.clear()
-                term.setCursorPos(1,1)
-                print("Presentatie gepauzeerd. Hervat na reboot!")
-                return
-            end
-            sleep(0.05)
-        end
-
-        saveState(state)
     end
+
+    -- Monitoren
+    showOnMonitors(slide.text)
+
+    -- Speaker notificatie
+    playNotification()
+
+    -- Timer met non-blocking event check
+    local startTime = os.clock()
+    while os.clock() - startTime < slide.time do
+        local event, id = os.pullEventRaw()
+        if event == "terminate" or event == "key" or event == "mouse_click" then
+            state.paused = true
+            saveState(state)
+            term.clear()
+            term.setCursorPos(1,1)
+            print("Presentatie gepauzeerd. Hervat na reboot!")
+            return
+        end
+        sleep(0.05)
+    end
+
+    -- Volgende slide index
+    currentIndex = currentIndex + 1
+    if currentIndex > totalSlides then currentIndex = 1 end
+    state.current = currentIndex
+    saveState(state)
 end
