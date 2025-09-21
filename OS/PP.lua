@@ -1,5 +1,5 @@
 -- PP.lua
--- Presentatie Player met tekstschaling per monitor
+-- Presentatie Player met multi-line scaling per monitor
 
 -- Zoek wired modem en aangesloten monitors
 local modem = peripheral.find("modem")
@@ -12,25 +12,32 @@ if modem then
     end
 end
 
--- Functie: toon tekst geschaald op een monitor
+-- Functie: splits lange tekst in meerdere regels passend bij de breedte
+local function splitText(text, width)
+    local lines = {}
+    local start = 1
+    while start <= #text do
+        local chunk = text:sub(start, start + width - 1)
+        table.insert(lines, chunk)
+        start = start + width
+    end
+    return lines
+end
+
+-- Toon tekst geschaald en gesplitst op 1 monitor
 local function showOnMonitor(mon, text)
     mon.clear()
     local w, h = mon.getSize()
-
-    -- Als tekst langer is dan schermbreedte, inkorten met "..."
-    local displayText = text
-    if #text > w then
-        if w > 3 then
-            displayText = text:sub(1, w-3) .. "..."
-        else
-            displayText = string.rep(".", w)
+    local lines = splitText(text, w)
+    local startY = math.floor((h - #lines) / 2) + 1
+    for i, line in ipairs(lines) do
+        local x = math.floor((w - #line) / 2) + 1
+        local y = startY + i - 1
+        if y <= h then
+            mon.setCursorPos(x, y)
+            mon.write(line)
         end
     end
-
-    local x = math.floor((w - #displayText) / 2)
-    local y = math.floor(h / 2)
-    mon.setCursorPos(x, y)
-    mon.write(displayText)
 end
 
 -- Toon tekst op alle monitors
@@ -88,21 +95,20 @@ sleep(2)
 local function playSlides()
     for _, slide in ipairs(slides) do
         term.clear()
+        -- Lokaal scherm
         local w, h = term.getSize()
-        local x = math.floor((w - #slide.text) / 2)
-        local y = math.floor(h / 2)
-        local displayText = slide.text
-        if #displayText > w then
-            if w > 3 then
-                displayText = displayText:sub(1, w-3) .. "..."
-            else
-                displayText = string.rep(".", w)
+        local lines = splitText(slide.text, w)
+        local startY = math.floor((h - #lines) / 2) + 1
+        for i, line in ipairs(lines) do
+            local x = math.floor((w - #line) / 2) + 1
+            local y = startY + i - 1
+            if y <= h then
+                term.setCursorPos(x, y)
+                term.write(line)
             end
         end
-        term.setCursorPos(x, y)
-        print(displayText)
 
-        -- Toon op alle monitors
+        -- Alle monitors
         showOnMonitors(slide.text)
 
         sleep(slide.time)
@@ -117,10 +123,10 @@ parallel.waitForAny(
         end
     end,
     function()
-        os.pullEvent("key")        -- stop bij toets
+        os.pullEvent("key")
     end,
     function()
-        os.pullEvent("mouse_click") -- stop bij klik
+        os.pullEvent("mouse_click")
     end
 )
 
