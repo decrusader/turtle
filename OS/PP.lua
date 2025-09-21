@@ -1,5 +1,5 @@
 -- PP.lua
--- Presentatie Player met autosave + resume + pause
+-- Presentatie Player met autosave, resume, pauze en speaker notificatie
 
 local stateFile = "session.dat"
 local saveFile  = "pp_state.json"
@@ -29,17 +29,31 @@ local function clearState()
 end
 
 -- Zoek monitors
-local modem = peripheral.find("modem")
-local screens = {}
-if modem then
-    for _, name in ipairs(peripheral.getNames()) do
-        if peripheral.getType(name) == "monitor" then
-            table.insert(screens, name)
+local monitors = {}
+for _, name in ipairs(peripheral.getNames()) do
+    if peripheral.getType(name) == "monitor" then
+        table.insert(monitors, peripheral.wrap(name))
+    end
+end
+
+-- Zoek speakers via wired modem
+local speakers = {}
+for _, name in ipairs(peripheral.getNames()) do
+    if peripheral.getType(name) == "speaker" then
+        table.insert(speakers, peripheral.wrap(name))
+    end
+end
+
+local function playNotification()
+    for _, spk in ipairs(speakers) do
+        if spk then
+            -- Speel toon op speaker
+            spk.playSound("minecraft:note_block.pling")
         end
     end
 end
 
--- Helpers voor tekst tonen
+-- Helpers voor tekst
 local function splitText(text, width)
     local lines, start = {}, 1
     while start <= #text do
@@ -83,16 +97,16 @@ local function showOnMonitor(mon, text)
 end
 
 local function showOnMonitors(text)
-    for _, name in ipairs(screens) do
-        local mon = peripheral.wrap(name)
-        if mon then showOnMonitor(mon, text) end
+    for _, mon in ipairs(monitors) do
+        showOnMonitor(mon, text)
     end
 end
 
--- Laad bestaande state
+-- Laad state
 local state = loadState() or { slides = {}, current = 1, paused = false }
+local slideShown = {} -- houdt bij welke slides al notificatie kregen
 
--- Als geen slides → vraag input
+-- Dia toevoegen als er nog geen slides zijn
 if #state.slides == 0 then
     while true do
         term.clear()
@@ -103,18 +117,15 @@ if #state.slides == 0 then
         local text = read()
 
         if text == "klaar" then break end
-        if text == "" then
-            print("Lege tekst is niet toegestaan!")
-            sleep(1)
-        else
+        if text ~= "" then
             term.write("Duur (seconden): ")
             local duration = tonumber(read())
-            if not duration or duration <= 0 then
-                print("Ongeldige tijd, probeer opnieuw.")
-                sleep(1)
-            else
+            if duration and duration > 0 then
                 table.insert(state.slides, {text=text, time=duration})
                 print("Dia toegevoegd! ("..text.." - "..duration.."s)")
+                sleep(1)
+            else
+                print("Ongeldige tijd, probeer opnieuw.")
                 sleep(1)
             end
         end
@@ -132,7 +143,7 @@ if #state.slides == 0 then
     return
 end
 
--- Check of presentatie gepauzeerd was
+-- Check pauze
 if state.paused then
     term.clear()
     term.setCursorPos(1,1)
@@ -153,54 +164,54 @@ print("Presentatie start/resume over 2 seconden...")
 sleep(2)
 
 -- Slide loop
-local function playSlides()
-    while state.current <= #state.slides do
-        local slide = state.slides[state.current]
+while state.current <= #state.slides do
+    local slide = state.slides[state.current]
 
-        -- Lokale scherm
-        term.clear()
-        local w, h = term.getSize()
-        local lines = splitText(slide.text, w)
-        local startY = math.floor((h - #lines) / 2) + 1
-        for i, line in ipairs(lines) do
-            local x = math.floor((w - #line) / 2) + 1
-            local y = startY + i - 1
-            if y <= h then
-                term.setCursorPos(x, y)
-                term.write(line)
-            end
-        end
-
-        -- Monitors
-        showOnMonitors(slide.text)
-
-        local startTime = os.clock()
-        while os.clock() - startTime < slide.time do
-            local ev = {os.pullEventRaw()}
-            if ev[1] == "terminate" or ev[1] == "key" or ev[1] == "mouse_click" then
-                state.paused = true
-                saveState(state) -- sla op waar je bent en dat hij gepauzeerd is
-                term.clear()
-                term.setCursorPos(1,1)
-                print("Presentatie gepauzeerd. Hervat na reboot!")
-                return
-            end
-        end
-
-        -- Volgende slide
-        state.current = state.current + 1
-        saveState(state)
+    -- Notification bij nieuwe slide
+    if not slideShown[state.current] then
+        slideShown[state.current] = true
+        playNotification()
     end
 
-    -- Klaar -> opschonen
+    -- Lokale schermen
     term.clear()
-    term.setCursorPos(1,1)
-    print("Presentatie voltooid!")
-    clearState()
-    for _, name in ipairs(screens) do
-        local mon = peripheral.wrap(name)
-        if mon then mon.clear() end
+    local w, h = term.getSize()
+    local lines = splitText(slide.text, w)
+    local startY = math.floor((h - #lines) / 2) + 1
+    for i, line in ipairs(lines) do
+        local x = math.floor((w - #line) / 2) + 1
+        local y = startY + i - 1
+        if y <= h then
+            term.setCursorPos(x, y)
+            term.write(line)
+        end
     end
+
+    -- Monitors
+    showOnMonitors(slide.text)
+
+    -- Slide tijd
+    local startTime = os.clock()
+    while os.clock() - startTime < slide.time do
+        local ev = {os.pullEventRaw()}
+        if ev[1] == "terminate" or ev[1] == "key" or ev[1] == "mouse_click" then
+            state.paused = true
+            saveState(state)
+            term.clear()
+            term.setCursorPos(1,1)
+            print("Presentatie gepauzeerd. Hervat na reboot!")
+            return
+        end
+    end
+
+    -- Volgende slide
+    state.current = state.current + 1
+    saveState(state)
 end
 
-playSlides()
+-- Klaar
+term.clear()
+term.setCursorPos(1,1)
+print("Presentatie voltooid!")
+clearState()
+for _, mon in ipairs(monitors) do mon.clear() end
