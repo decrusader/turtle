@@ -1,10 +1,10 @@
 -- PP.lua
--- Presentatie Player met autosave + resume
+-- Presentatie Player met autosave + resume + pause
 
 local stateFile = "session.dat"
 local saveFile  = "pp_state.json"
 
--- JSON helpers (CC:Tweaked heeft textutils.serializeJSON)
+-- JSON helpers
 local function saveState(data)
     local f = fs.open(saveFile, "w")
     f.write(textutils.serializeJSON(data))
@@ -39,7 +39,7 @@ if modem then
     end
 end
 
--- Tekstschalen
+-- Helpers voor tekst tonen
 local function splitText(text, width)
     local lines, start = {}, 1
     while start <= #text do
@@ -89,8 +89,8 @@ local function showOnMonitors(text)
     end
 end
 
--- Laad bestaande state of nieuw
-local state = loadState() or { slides = {}, current = 1 }
+-- Laad bestaande state
+local state = loadState() or { slides = {}, current = 1, paused = false }
 
 -- Als geen slides → vraag input
 if #state.slides == 0 then
@@ -120,6 +120,7 @@ if #state.slides == 0 then
         end
     end
     state.current = 1
+    state.paused = false
     saveState(state)
 end
 
@@ -129,6 +130,20 @@ if #state.slides == 0 then
     print("Geen dia's toegevoegd, afsluiten...")
     clearState()
     return
+end
+
+-- Check of presentatie gepauzeerd was
+if state.paused then
+    term.clear()
+    term.setCursorPos(1,1)
+    print("Presentatie was gepauzeerd op dia " .. state.current)
+    print("Wil je hervatten? (j/n)")
+    local answer = read()
+    if answer:lower() ~= "j" then
+        state.current = 1
+    end
+    state.paused = false
+    saveState(state)
 end
 
 -- Countdown
@@ -161,10 +176,10 @@ local function playSlides()
 
         local startTime = os.clock()
         while os.clock() - startTime < slide.time do
-            -- tijdens afspelen event checken
             local ev = {os.pullEventRaw()}
             if ev[1] == "terminate" or ev[1] == "key" or ev[1] == "mouse_click" then
-                saveState(state) -- huidige state opslaan
+                state.paused = true
+                saveState(state) -- sla op waar je bent en dat hij gepauzeerd is
                 term.clear()
                 term.setCursorPos(1,1)
                 print("Presentatie gepauzeerd. Hervat na reboot!")
