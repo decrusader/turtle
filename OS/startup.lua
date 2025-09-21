@@ -1,11 +1,11 @@
 -- startup.lua
--- CoreLogic OS startup met download-animatie (zonder laatste ".")
+-- CoreLogic OS startup met automatische download van meerdere bestanden
 
--- Functie: download een bestand en toon animatie
+-- Functie: download een bestand en toon animatie (minimaal 2 sec met . .. ...)
 local function downloadFile(url, filename)
     term.clear()
     term.setCursorPos(1,1)
-    print("Downloading:")
+    print("Downloading: " .. filename)
 
     local response = http.get(url)
     if response then
@@ -31,12 +31,17 @@ local function downloadFile(url, filename)
     end
 end
 
--- URL naar animation.lua (RAW GitHub link!)
-local animationURL = "https://raw.githubusercontent.com/<username>/<repo>/main/animation.lua"
+-- URLs naar bestanden (vervang door jouw GitHub RAW links!)
+local files = {
+    { url = "https://raw.githubusercontent.com/<username>/<repo>/main/animation.lua", name = "animation.lua" },
+    { url = "https://raw.githubusercontent.com/<username>/<repo>/main/PP.lua",        name = "PP.lua" }
+}
 
--- Als animation.lua niet bestaat, downloaden
-if not fs.exists("animation.lua") then
-    downloadFile(animationURL, "animation.lua")
+-- Download ontbrekende bestanden
+for _, file in ipairs(files) do
+    if not fs.exists(file.name) then
+        downloadFile(file.url, file.name)
+    end
 end
 
 -- Laad en speel animatie af
