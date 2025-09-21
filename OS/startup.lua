@@ -23,9 +23,9 @@ end
 
 -- Altijd opnieuw te downloaden bestanden
 local files = {
-    { url = "https://raw.githubusercontent.com/<username>/<repo>/main/animation.lua", name = "animation.lua" },
-    { url = "https://raw.githubusercontent.com/<username>/<repo>/main/PP.lua",        name = "PP.lua" },
-    { url = "https://raw.githubusercontent.com/<username>/<repo>/main/resume.lua",    name = "resume.lua" }
+    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/animation.lua", name = "animation.lua" },
+    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/PP.lua",        name = "PP.lua" },
+    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/resume.lua",    name = "resume.lua" }
 }
 
 -- Download alle bestanden
