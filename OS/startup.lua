@@ -1,5 +1,5 @@
 -- startup.lua
--- CoreLogic OS startup met mirrored animation (geen permanente tekst)
+-- CoreLogic OS startup met automatische her-download van alle bestanden
 
 -- Functie: download een bestand en toon animatie (minimaal 2 sec)
 local function downloadFile(url, filename)
@@ -34,15 +34,13 @@ end
 
 -- RAW GitHub links
 local files = {
-    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/animation.lua", name = "animation.lua" },
-    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/PP.lua",        name = "PP.lua" }
+    { url = "https://raw.githubusercontent.com/<username>/<repo>/main/animation.lua", name = "animation.lua" },
+    { url = "https://raw.githubusercontent.com/<username>/<repo>/main/PP.lua",        name = "PP.lua" }
 }
 
--- Download ontbrekende bestanden
+-- Download altijd opnieuw
 for _, file in ipairs(files) do
-    if not fs.exists(file.name) then
-        downloadFile(file.url, file.name)
-    end
+    downloadFile(file.url, file.name)
 end
 
 -- Zoek wired modem en aangesloten monitors
@@ -85,7 +83,7 @@ mirrorToScreens("Starting Animation...")
 local animation = dofile("animation.lua")
 animation.play()
 
--- 2) Clear de mirrored monitors zodat programma's later hun eigen output kunnen tonen
+-- 2) Clear monitors zodat later programma's hun eigen output kunnen tonen
 clearScreens()
 
 -- 3) Terminal klaar voor gebruik
