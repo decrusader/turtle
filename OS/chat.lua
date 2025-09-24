@@ -11,6 +11,7 @@ print("Chat gestart op kanaal " .. channel)
 print("Crtl + t om de chat te stoppen")
 sleep(3)
 term.clear()
+term.setCursorPos(1,1)
 
 local function sendMessage(text)
   local id = os.getComputerID()
