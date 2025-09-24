@@ -37,7 +37,7 @@ end
 local function stopLoop()
     while true do
         local event, key = os.pullEvent("key")
-        if key == keys.t and keyboard.isControlDown() then
+        if key == keys.t and key.e then
             return
         end
     end
