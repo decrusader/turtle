@@ -36,8 +36,8 @@ end
 
 local function stopLoop()
     while true do
-        local event, key = os.pullEvent("key")
-        if key == keys.t and key.e then
+        local ² = os.pullEvent()
+        if ² == "key" then
             return
         end
     end
