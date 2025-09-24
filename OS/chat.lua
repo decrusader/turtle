@@ -20,7 +20,7 @@ local function receiveLoop()
     while true do
         local event, side, ch, replyCh, message, distance = os.pullEvent("modem_message")
         if ch == channel then
-            print("id: %d %s",message)
+            print(message)
         end
     end
 end
