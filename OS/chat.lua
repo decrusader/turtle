@@ -33,4 +33,4 @@ local function inputLoop()
     end
 end
 
-parallel.waitForAny(receiveLoop, inputLoop,)
+parallel.waitForAny(receiveLoop, inputLoop)
