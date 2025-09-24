@@ -7,7 +7,6 @@ local channel = tonumber(read()) or error("Ongeldig channel", 0)
 
 modem.open(channel)
 print("Chat gestart op channel " .. channel)
-print("Typ berichten. Ctrl+T om te stoppen.")
 sleep(3)
 term.clear()
 
@@ -34,4 +33,4 @@ local function inputLoop()
     end
 end
 
-parallel.waitForAny(receiveLoop, inputLoop, stopLoop)
+parallel.waitForAny(receiveLoop, inputLoop,)
