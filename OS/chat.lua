@@ -9,7 +9,7 @@ modem.open(channel)
 print("Chat gestart op channel " .. channel)
 print("Typ berichten. Ctrl+T om te stoppen.")
 sleep(3)
-term.clear
+term.clear()
 
 local function sendMessage(text)
     local id = os.getComputerID()
