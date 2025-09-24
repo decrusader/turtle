@@ -2,7 +2,7 @@ local modem = peripheral.find("modem") or error("Geen modem gevonden", 0)
 
 term.clear()
 term.setCursorPos(1,1)
-write("Kies een channel (0-65535): ")
+write("Kies een channel: ")
 local channel = tonumber(read())
 if not channel then error("Ongeldig channel", 0) end
 
