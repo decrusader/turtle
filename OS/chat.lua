@@ -8,6 +8,8 @@ if not channel then error("Ongeldig channel", 0) end
 
 modem.open(channel)
 print("Chat gestart op kanaal " .. channel)
+print("Crtl + t om de chat te stoppen")
+sleep(3)
 term.clear()
 
 local function sendMessage(text)
@@ -19,7 +21,7 @@ local function receiveLoop()
   while true do
     local event, side, ch, replyCh, message, dist = os.pullEvent("modem_message")
     if ch == channel then
-      print(message) 
+      print("id: %d %s",message) 
     end
   end
 end
@@ -33,4 +35,14 @@ local function inputLoop()
   end
 end
 
-parallel.waitForAny(receiveLoop, inputLoop)
+local function stopLoop()
+  while true do
+    local event, key = os.pullEvent("key")
+    if keys.isDown(keys.ctrl) and keys.isDown(keys.t) then
+      print("Stopped by Q + E combo")
+      return  
+    end
+  end
+end
+
+parallel.waitForAny(receiveLoop, inputLoop, stopLoop)
