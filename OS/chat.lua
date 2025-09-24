@@ -40,7 +40,6 @@ local function stopLoop()
   while true do
     local event, key = os.pullEvent("key")
     if keys.isDown(keys.ctrl) and keys.isDown(keys.t) then
-      print("Stopped by Q + E combo")
       return  
     end
   end
