@@ -20,7 +20,7 @@ local function receiveLoop()
     while true do
         local event, side, ch, replyCh, message, distance = os.pullEvent("modem_message")
         if ch == channel then
-            print(message)
+            print(message, "t")
         end
     end
 end
@@ -30,15 +30,6 @@ local function inputLoop()
         local text = read()
         if #text > 0 then
             sendMessage(text)
-        end
-    end
-end
-
-local function stopLoop()
-    while true do
-        local & = os.pullEvent()
-        if & == "key" then
-            return
         end
     end
 end
