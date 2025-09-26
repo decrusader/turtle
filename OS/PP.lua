@@ -75,17 +75,17 @@ while true do
 
     if text == "klaar" then break end
     if text == "" then
-        print("⚠️  Lege tekst is niet toegestaan!")
+        print("  Lege tekst is niet toegestaan!")
         sleep(1)
     else
         term.write("Duur (seconden): ")
         local duration = tonumber(read())
         if not duration or duration <= 0 then
-            print("⚠️  Ongeldige tijd, probeer opnieuw.")
+            print("  Ongeldige tijd, probeer opnieuw.")
             sleep(1)
         else
             table.insert(slides, {text=text, time=duration})
-            print("✅ Dia toegevoegd! ("..text.." - "..duration.."s)")
+            print(" Dia toegevoegd! ("..text.." - "..duration.."s)")
             sleep(1)
         end
     end
