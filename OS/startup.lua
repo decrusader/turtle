@@ -18,11 +18,11 @@ local function downloadFile(url, filename)
             f.close()
             print(filename .. " gedownload (" .. #content .. " bytes)")
         else
-            print("⚠ Waarschuwing: " .. filename .. " is leeg!")
+            print("Waarschuwing: " .. filename .. " is leeg!")
             sleep(2)
         end
     else
-        print(" Fout: kon " .. filename .. " niet downloaden!")
+        print("Fout: kon " .. filename .. " niet downloaden!")
         sleep(2)
     end
 end
@@ -33,13 +33,13 @@ local files = {
     { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/PP.lua",        name = "PP.lua" },
     { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/mine.lua",      name = "mine.lua" },
     { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/music.lua",     name = "music.lua" },
-    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/chat.lua",     name = "chat.lua" }
+    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/chat.lua",      name = "chat.lua" }
 }
 
 -- Download alle bestanden
 for _, file in ipairs(files) do
     downloadFile(file.url, file.name)
-    sleep(0.5) -- klein beetje rust zodat je ziet wat hij doet
+    sleep(0.5)
 end
 
 -- Resume check
@@ -51,10 +51,17 @@ if fs.exists("session.dat") then
     if program and fs.exists(program) then
         print("Hervatten van sessie: " .. program)
         sleep(1)
-        shell.run(program)
-        return
+
+        -- Speciaal geval: PP.lua
+        if program == "PP.lua" then
+            shell.run("PP.lua")
+            return
+        else
+            shell.run(program)
+            return
+        end
     else
-        print(" Session bestand verwijst naar " .. tostring(program) .. " maar dat bestaat niet.")
+        print("Session bestand verwijst naar " .. tostring(program) .. " maar dat bestaat niet.")
         fs.delete("session.dat")
         sleep(2)
     end
