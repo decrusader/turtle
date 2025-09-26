@@ -1,34 +1,7 @@
 -- PP.lua
--- Presentatie Player met autosave + resume
+-- Presentatie Player met geschaalde tekst voor kleine schermen
 
-local stateFile = "session.dat"
-local saveFile  = "pp_state.json"
-
--- JSON helpers (CC:Tweaked heeft textutils.serializeJSON)
-local function saveState(data)
-    local f = fs.open(saveFile, "w")
-    f.write(textutils.serializeJSON(data))
-    f.close()
-    -- schrijf ook naar session.dat zodat startup weet wat te openen
-    local s = fs.open(stateFile, "w")
-    s.writeLine("PP.lua")
-    s.close()
-end
-
-local function loadState()
-    if not fs.exists(saveFile) then return nil end
-    local f = fs.open(saveFile, "r")
-    local content = f.readAll()
-    f.close()
-    return textutils.unserializeJSON(content)
-end
-
-local function clearState()
-    if fs.exists(saveFile) then fs.delete(saveFile) end
-    if fs.exists(stateFile) then fs.delete(stateFile) end
-end
-
--- Zoek monitors
+-- Zoek wired modem en aangesloten monitors
 local modem = peripheral.find("modem")
 local screens = {}
 if modem then
@@ -39,9 +12,10 @@ if modem then
     end
 end
 
--- Tekstschalen
+-- Functie: splits lange tekst in meerdere regels
 local function splitText(text, width)
-    local lines, start = {}, 1
+    local lines = {}
+    local start = 1
     while start <= #text do
         local chunk = text:sub(start, start + width - 1)
         table.insert(lines, chunk)
@@ -50,15 +24,18 @@ local function splitText(text, width)
     return lines
 end
 
+-- Functie: schaal tekst voor monitoren
 local function scaleTextForMonitor(mon, text)
     local w, h = mon.getSize()
+    -- Als tekst te breed is, probeer in meerdere regels
     local lines = splitText(text, w)
+    -- Als er nog steeds meer lijnen zijn dan hoogtescherm, gebruik verkorte weergave
     if #lines > h then
         local maxLines = h
         lines = {}
         for i = 1, maxLines do
             if i == maxLines then
-                lines[i] = string.rep(".", w)
+                lines[i] = string.rep(".", w) -- placeholder voor te lange tekst
             else
                 lines[i] = text:sub((i-1)*w +1, i*w)
             end
@@ -67,6 +44,7 @@ local function scaleTextForMonitor(mon, text)
     return lines
 end
 
+-- Toon tekst op een monitor
 local function showOnMonitor(mon, text)
     mon.clear()
     local w, h = mon.getSize()
@@ -82,70 +60,64 @@ local function showOnMonitor(mon, text)
     end
 end
 
+-- Toon tekst op alle monitors
 local function showOnMonitors(text)
-    for _, name in ipairs(screens) do
-        local mon = peripheral.wrap(name)
-        if mon then showOnMonitor(mon, text) end
-    end
-end
-
--- Laad bestaande state of nieuw
-local state = loadState() or { slides = {}, current = 1 }
-
--- Als geen slides → vraag input
-if #state.slides == 0 then
-    while true do
-        term.clear()
-        term.setCursorPos(1,1)
-        print("=== Presentatie Builder ===")
-        print("Typ de tekst voor de dia, of 'klaar' om te stoppen.")
-        term.write("Tekst: ")
-        local text = read()
-
-        if text == "klaar" then break end
-        if text == "" then
-            print("Lege tekst is niet toegestaan!")
-            sleep(1)
-        else
-            term.write("Duur (seconden): ")
-            local duration = tonumber(read())
-            if not duration or duration <= 0 then
-                print("Ongeldige tijd, probeer opnieuw.")
-                sleep(1)
-            else
-                table.insert(state.slides, {text=text, time=duration})
-                print("Dia toegevoegd! ("..text.." - "..duration.."s)")
-                sleep(1)
-            end
+    for _, screenName in ipairs(screens) do
+        local mon = peripheral.wrap(screenName)
+        if mon then
+            showOnMonitor(mon, text)
         end
     end
-    state.current = 1
-    saveState(state)
 end
 
-if #state.slides == 0 then
+-- Invoer van dia's
+local slides = {}
+while true do
+    term.clear()
+    term.setCursorPos(1,1)
+    print("=== Presentatie Builder ===")
+    print("Typ de tekst voor de dia, of 'klaar' om te stoppen.")
+    term.write("Tekst: ")
+    local text = read()
+
+    if text == "klaar" then break end
+    if text == "" then
+        print("Lege tekst is niet toegestaan!")
+        sleep(1)
+    else
+        term.write("Duur (seconden): ")
+        local duration = tonumber(read())
+        if not duration or duration <= 0 then
+            print("Ongeldige tijd, probeer opnieuw.")
+            sleep(1)
+        else
+            table.insert(slides, {text=text, time=duration})
+            print("Dia toegevoegd! ("..text.." - "..duration.."s)")
+            sleep(1)
+        end
+    end
+end
+
+if #slides == 0 then
     term.clear()
     term.setCursorPos(1,1)
     print("Geen dia's toegevoegd, afsluiten...")
-    clearState()
     return
 end
 
 -- Countdown
 term.clear()
 term.setCursorPos(1,1)
-print("Presentatie start/resume over 2 seconden...")
+print("Presentatie start over 2 seconden...")
 sleep(2)
 
--- Slide loop
+-- Functie om slides 1x te tonen
 local function playSlides()
-    while state.current <= #state.slides do
-        local slide = state.slides[state.current]
-
-        -- Lokale scherm
+    for _, slide in ipairs(slides) do
         term.clear()
+        -- Lokaal scherm
         local w, h = term.getSize()
-        local lines = splitText(slide.text, w)
+        local lines = scaleTextForMonitor({getSize=function() return w,h end, setCursorPos=function() end, write=function() end}, slide.text)
         local startY = math.floor((h - #lines) / 2) + 1
         for i, line in ipairs(lines) do
             local x = math.floor((w - #line) / 2) + 1
@@ -156,36 +128,31 @@ local function playSlides()
             end
         end
 
-        -- Monitors
+        -- Alle monitors
         showOnMonitors(slide.text)
 
-        local startTime = os.clock()
-        while os.clock() - startTime < slide.time do
-            -- tijdens afspelen event checken
-            local ev = {os.pullEventRaw()}
-            if ev[1] == "terminate" or ev[1] == "key" or ev[1] == "mouse_click" then
-                saveState(state) -- huidige state opslaan
-                term.clear()
-                term.setCursorPos(1,1)
-                print("Presentatie gepauzeerd. Hervat na reboot!")
-                return
-            end
-        end
-
-        -- Volgende slide
-        state.current = state.current + 1
-        saveState(state)
-    end
-
-    -- Klaar -> opschonen
-    term.clear()
-    term.setCursorPos(1,1)
-    print("Presentatie voltooid!")
-    clearState()
-    for _, name in ipairs(screens) do
-        local mon = peripheral.wrap(name)
-        if mon then mon.clear() end
+        sleep(slide.time)
     end
 end
 
-playSlides()
+-- Blijf loopen tot key of klik
+parallel.waitForAny(
+    function()
+        while true do
+            playSlides()
+        end
+    end,
+    function() os.pullEvent("key") end,
+    function() os.pullEvent("mouse_click") end
+)
+
+-- Stop
+term.clear()
+term.setCursorPos(1,1)
+print("Presentatie gestopt!")
+
+-- Clear monitors
+for _, screenName in ipairs(screens) do
+    local mon = peripheral.wrap(screenName)
+    if mon then mon.clear() end
+end
