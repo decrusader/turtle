@@ -1,206 +1,74 @@
--- PP.lua
--- Presentatie Player met autosave + resume + pause
+-- startup.lua
+-- CoreLogic OS met automatische updates + auto-resume state
 
-local stateFile = "session.dat"
-local saveFile  = "pp_state.json"
+-- Download functie
+local function downloadFile(url, filename)
+    term.clear()
+    term.setCursorPos(1,1)
+    print("Downloading: " .. filename)
 
--- JSON helpers
-local function saveState(data)
-    local f = fs.open(saveFile, "w")
-    f.write(textutils.serializeJSON(data))
-    f.close()
-    -- schrijf ook naar session.dat zodat startup weet wat te openen
-    local s = fs.open(stateFile, "w")
-    s.writeLine("PP.lua")
-    s.close()
-end
+    local response = http.get(url)
+    if response then
+        local content = response.readAll()
+        response.close()
 
-local function loadState()
-    if not fs.exists(saveFile) then return nil end
-    local f = fs.open(saveFile, "r")
-    local content = f.readAll()
-    f.close()
-    return textutils.unserializeJSON(content)
-end
-
-local function clearState()
-    if fs.exists(saveFile) then fs.delete(saveFile) end
-    if fs.exists(stateFile) then fs.delete(stateFile) end
-end
-
--- Zoek monitors
-local modem = peripheral.find("modem")
-local screens = {}
-if modem then
-    for _, name in ipairs(peripheral.getNames()) do
-        if peripheral.getType(name) == "monitor" then
-            table.insert(screens, name)
-        end
-    end
-end
-
--- Helpers voor tekst tonen
-local function splitText(text, width)
-    local lines, start = {}, 1
-    while start <= #text do
-        local chunk = text:sub(start, start + width - 1)
-        table.insert(lines, chunk)
-        start = start + width
-    end
-    return lines
-end
-
-local function scaleTextForMonitor(mon, text)
-    local w, h = mon.getSize()
-    local lines = splitText(text, w)
-    if #lines > h then
-        local maxLines = h
-        lines = {}
-        for i = 1, maxLines do
-            if i == maxLines then
-                lines[i] = string.rep(".", w)
-            else
-                lines[i] = text:sub((i-1)*w +1, i*w)
-            end
-        end
-    end
-    return lines
-end
-
-local function showOnMonitor(mon, text)
-    mon.clear()
-    local w, h = mon.getSize()
-    local lines = scaleTextForMonitor(mon, text)
-    local startY = math.floor((h - #lines) / 2) + 1
-    for i, line in ipairs(lines) do
-        local x = math.floor((w - #line) / 2) + 1
-        local y = startY + i - 1
-        if y <= h then
-            mon.setCursorPos(x, y)
-            mon.write(line)
-        end
-    end
-end
-
-local function showOnMonitors(text)
-    for _, name in ipairs(screens) do
-        local mon = peripheral.wrap(name)
-        if mon then showOnMonitor(mon, text) end
-    end
-end
-
--- Laad bestaande state
-local state = loadState() or { slides = {}, current = 1, paused = false }
-
--- Als geen slides → vraag input
-if #state.slides == 0 then
-    while true do
-        term.clear()
-        term.setCursorPos(1,1)
-        print("=== Presentatie Builder ===")
-        print("Typ de tekst voor de dia, of 'klaar' om te stoppen.")
-        term.write("Tekst: ")
-        local text = read()
-
-        if text == "klaar" then break end
-        if text == "" then
-            print("Lege tekst is niet toegestaan!")
-            sleep(1)
+        if content and #content > 0 then
+            local f = fs.open(filename, "w")
+            f.write(content)
+            f.close()
+            print(filename .. " gedownload (" .. #content .. " bytes)")
         else
-            term.write("Duur (seconden): ")
-            local duration = tonumber(read())
-            if not duration or duration <= 0 then
-                print("Ongeldige tijd, probeer opnieuw.")
-                sleep(1)
-            else
-                table.insert(state.slides, {text=text, time=duration})
-                print("Dia toegevoegd! ("..text.." - "..duration.."s)")
-                sleep(1)
-            end
+            print("⚠ Waarschuwing: " .. filename .. " is leeg!")
+            sleep(2)
         end
+    else
+        print(" Fout: kon " .. filename .. " niet downloaden!")
+        sleep(2)
     end
-    state.current = 1
-    state.paused = false
-    saveState(state)
 end
 
-if #state.slides == 0 then
-    term.clear()
-    term.setCursorPos(1,1)
-    print("Geen dia's toegevoegd, afsluiten...")
-    clearState()
-    return
+-- Altijd opnieuw te downloaden bestanden
+local files = {
+    { url = "https://raw.githubusercontent.com/decrusader/turtle/main/OS/animation.lua", name = "animation.lua" },
+    { url = "https://raw.githubusercontent.com/decrusader/turtle/main/OS/PP.lua",        name = "PP.lua" },
+    { url = "https://raw.githubusercontent.com/decrusader/turtle/main/OS/mine.lua",      name = "mine.lua" },
+    { url = "https://raw.githubusercontent.com/decrusader/turtle/main/OS/music.lua",     name = "music.lua" }
+}
+
+-- Download alle bestanden
+for _, file in ipairs(files) do
+    downloadFile(file.url, file.name)
+    sleep(0.5) -- klein beetje rust zodat je ziet wat hij doet
 end
 
--- Check of presentatie gepauzeerd was
-if state.paused then
-    term.clear()
-    term.setCursorPos(1,1)
-    print("Presentatie was gepauzeerd op dia " .. state.current)
-    print("Wil je hervatten? (j/n)")
-    local answer = read()
-    if answer:lower() ~= "j" then
-        state.current = 1
+-- Resume check
+if fs.exists("session.dat") then
+    local f = fs.open("session.dat", "r")
+    local program = f.readLine()
+    f.close()
+
+    if program and fs.exists(program) then
+        print("Hervatten van sessie: " .. program)
+        sleep(1)
+        shell.run(program)
+        return
+    else
+        print(" Session bestand verwijst naar " .. tostring(program) .. " maar dat bestaat niet.")
+        fs.delete("session.dat")
+        sleep(2)
     end
-    state.paused = false
-    saveState(state)
 end
 
--- Countdown
+-- Start normale animatie
+if fs.exists("animation.lua") then
+    local animation = dofile("animation.lua")
+    animation.play()
+end
+
 term.clear()
 term.setCursorPos(1,1)
-print("Presentatie start/resume over 2 seconden...")
-sleep(2)
-
--- Slide loop
-local function playSlides()
-    while state.current <= #state.slides do
-        local slide = state.slides[state.current]
-
-        -- Lokale scherm
-        term.clear()
-        local w, h = term.getSize()
-        local lines = splitText(slide.text, w)
-        local startY = math.floor((h - #lines) / 2) + 1
-        for i, line in ipairs(lines) do
-            local x = math.floor((w - #line) / 2) + 1
-            local y = startY + i - 1
-            if y <= h then
-                term.setCursorPos(x, y)
-                term.write(line)
-            end
-        end
-
-        -- Monitors
-        showOnMonitors(slide.text)
-
-        local startTime = os.clock()
-        while os.clock() - startTime < slide.time do
-            local ev = {os.pullEventRaw()}
-            if ev[1] == "terminate" or ev[1] == "key" or ev[1] == "mouse_click" then
-                state.paused = true
-                saveState(state) -- sla op waar je bent en dat hij gepauzeerd is
-                term.clear()
-                term.setCursorPos(1,1)
-                print("Presentatie gepauzeerd. Hervat na reboot!")
-                return
-            end
-        end
-
-        -- Volgende slide
-        state.current = state.current + 1
-        saveState(state)
-    end
-
-    -- Klaar -> opschonen
-    term.clear()
-    term.setCursorPos(1,1)
-    print("Presentatie voltooid!")
-    clearState()
-    for _, name in ipairs(screens) do
-        local mon = peripheral.wrap(name)
-        if mon then mon.clear() end
-    end
-end
-
-playSlides()
+print("CoreLogic OS klaar voor gebruik!")
+print("Typ een programma om te starten, bv:")
+print(" PP.lua")
+print(" mine.lua")
+print(" music.lua")
