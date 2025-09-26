@@ -36,13 +36,16 @@ local monitors = {}
 local speakers = {}
 for _, name in ipairs(peripheral.getNames()) do
     local t = peripheral.getType(name)
-    if t == "monitor" then table.insert(monitors, peripheral.wrap(name))
-    elseif t == "speaker" then table.insert(speakers, peripheral.wrap(name)) end
+    if t == "monitor" then
+        table.insert(monitors, peripheral.wrap(name))
+    elseif t == "speaker" then
+        table.insert(speakers, peripheral.wrap(name))
+    end
 end
 
 local function playNotification()
     for _, spk in ipairs(speakers) do
-        if spk then spk.playSound("minecraft:note_block.pling") end
+        if spk then pcall(spk.playSound, "minecraft:note_block.pling") end
     end
 end
 
@@ -51,11 +54,20 @@ end
 -- =========================
 local function splitText(text, width)
     local lines = {}
-    local start = 1
-    while start <= #text do
-        table.insert(lines, text:sub(start, start + width - 1))
-        start = start + width
+    local line = ""
+    for word in text:gmatch("%S+") do
+        if #line + #word + 1 <= width then
+            if line == "" then
+                line = word
+            else
+                line = line .. " " .. word
+            end
+        else
+            table.insert(lines, line)
+            line = word
+        end
     end
+    if line ~= "" then table.insert(lines, line) end
     return lines
 end
 
@@ -63,9 +75,9 @@ local function showOnMonitor(mon, text)
     mon.clear()
     local w, h = mon.getSize()
     local lines = splitText(text, w)
-    local startY = math.floor((h - #lines)/2) + 1
+    local startY = math.floor((h - #lines) / 2) + 1
     for i, line in ipairs(lines) do
-        local x = math.floor((w - #line)/2) + 1
+        local x = math.floor((w - #line) / 2) + 1
         local y = startY + i - 1
         if y <= h then
             mon.setCursorPos(x, y)
@@ -75,7 +87,9 @@ local function showOnMonitor(mon, text)
 end
 
 local function showOnMonitors(text)
-    for _, mon in ipairs(monitors) do showOnMonitor(mon, text) end
+    for _, mon in ipairs(monitors) do
+        showOnMonitor(mon, text)
+    end
 end
 
 -- =========================
@@ -87,7 +101,7 @@ local function askYesNo(prompt)
         local ans = read()
         if ans then
             ans = ans:lower()
-            if ans == "j" then return true end
+            if ans == "j" or ans == "y" then return true end
             if ans == "n" then return false end
         end
         print("Ongeldige invoer, typ j of n.")
@@ -162,13 +176,17 @@ local currentIndex = state.current
 while true do
     local slide = state.slides[currentIndex]
 
+    -- Sla huidige index meteen op
+    state.current = currentIndex
+    saveState(state)
+
     -- Terminal weergave
     term.clear()
     local w, h = term.getSize()
     local lines = splitText(slide.text, w)
-    local startY = math.floor((h - #lines)/2) + 1
+    local startY = math.floor((h - #lines) / 2) + 1
     for j, line in ipairs(lines) do
-        local x = math.floor((w - #line)/2) + 1
+        local x = math.floor((w - #line) / 2) + 1
         local y = startY + j - 1
         if y <= h then
             term.setCursorPos(x, y)
@@ -182,9 +200,9 @@ while true do
     -- Speaker notificatie
     playNotification()
 
-    -- Timer met non-blocking event check
-    local startTime = os.clock()
-    while os.clock() - startTime < slide.time do
+    -- Timer met event handling
+    local startTime = os.epoch("utc")
+    while os.epoch("utc") - startTime < slide.time * 1000 do
         local event, id = os.pullEventRaw()
         if event == "terminate" or event == "key" or event == "mouse_click" then
             state.paused = true
@@ -194,12 +212,9 @@ while true do
             print("Presentatie gepauzeerd. Hervat na reboot!")
             return
         end
-        sleep(0.05)
     end
 
-    -- Volgende slide index
+    -- Volgende slide
     currentIndex = currentIndex + 1
     if currentIndex > totalSlides then currentIndex = 1 end
-    state.current = currentIndex
-    saveState(state)
 end
