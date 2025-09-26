@@ -1,7 +1,13 @@
 -- PP.lua
--- Presentatie Player met opslag + autoload
+-- Presentatie Player met opslag + autoload + resume state
 
 local SAVE_FILE = "slides.txt"
+local SESSION_FILE = "session.dat"
+
+-- Schrijf sessie
+local f = fs.open(SESSION_FILE, "w")
+f.writeLine("PP.lua")
+f.close()
 
 -- Zoek modem en monitors
 local modem = peripheral.find("modem")
@@ -118,7 +124,7 @@ if #slides == 0 then
                 sleep(1)
             else
                 table.insert(slides, {text=text, time=duration})
-                print("Dia toegevoegd! ("..text.." - "..duration.."s)")
+                print("Dia toegevoegd ("..text.." - "..duration.."s)")
                 sleep(1)
             end
         end
@@ -168,3 +174,8 @@ parallel.waitForAny(presenter, stopper, mouseStopper)
 
 clearAll()
 print("Presentatie gestopt!")
+
+-- Sessie verwijderen
+if fs.exists(SESSION_FILE) then
+    fs.delete(SESSION_FILE)
+end
