@@ -1,7 +1,7 @@
 -- PP.lua
--- Presentatie Player met geschaalde tekst voor kleine schermen
+-- Presentatie Player met multi-line scaling per monitor
 
--- Zoek wired modem en aangesloten monitors
+-- Zoek modem en monitors
 local modem = peripheral.find("modem")
 local screens = {}
 if modem then
@@ -12,50 +12,42 @@ if modem then
     end
 end
 
--- Functie: splits lange tekst in meerdere regels
+-- Tekst netjes splitsen op basis van breedte
 local function splitText(text, width)
     local lines = {}
-    local start = 1
-    while start <= #text do
-        local chunk = text:sub(start, start + width - 1)
-        table.insert(lines, chunk)
-        start = start + width
-    end
-    return lines
-end
-
--- Functie: schaal tekst voor monitoren
-local function scaleTextForMonitor(mon, text)
-    local w, h = mon.getSize()
-    -- Als tekst te breed is, probeer in meerdere regels
-    local lines = splitText(text, w)
-    -- Als er nog steeds meer lijnen zijn dan hoogtescherm, gebruik verkorte weergave
-    if #lines > h then
-        local maxLines = h
-        lines = {}
-        for i = 1, maxLines do
-            if i == maxLines then
-                lines[i] = string.rep(".", w) -- placeholder voor te lange tekst
+    for line in text:gmatch("[^\n]+") do
+        local current = ""
+        for word in line:gmatch("%S+") do
+            if #current + #word + 1 > width then
+                table.insert(lines, current)
+                current = word
             else
-                lines[i] = text:sub((i-1)*w +1, i*w)
+                if current == "" then
+                    current = word
+                else
+                    current = current .. " " .. word
+                end
             end
+        end
+        if current ~= "" then
+            table.insert(lines, current)
         end
     end
     return lines
 end
 
--- Toon tekst op een monitor
-local function showOnMonitor(mon, text)
-    mon.clear()
-    local w, h = mon.getSize()
-    local lines = scaleTextForMonitor(mon, text)
+-- Toon tekst gecentreerd (werkt voor monitor én term)
+local function showCenteredText(target, text)
+    target.clear()
+    local w, h = target.getSize()
+    local lines = splitText(text, w)
     local startY = math.floor((h - #lines) / 2) + 1
     for i, line in ipairs(lines) do
         local x = math.floor((w - #line) / 2) + 1
         local y = startY + i - 1
         if y <= h then
-            mon.setCursorPos(x, y)
-            mon.write(line)
+            target.setCursorPos(x, y)
+            target.write(line)
         end
     end
 end
@@ -65,12 +57,13 @@ local function showOnMonitors(text)
     for _, screenName in ipairs(screens) do
         local mon = peripheral.wrap(screenName)
         if mon then
-            showOnMonitor(mon, text)
+            mon.setTextScale(1) -- schaal standaardiseren
+            showCenteredText(mon, text)
         end
     end
 end
 
--- Invoer van dia's
+-- Inputfase: verzamel slides
 local slides = {}
 while true do
     term.clear()
@@ -82,17 +75,17 @@ while true do
 
     if text == "klaar" then break end
     if text == "" then
-        print("Lege tekst is niet toegestaan!")
+        print("⚠️  Lege tekst is niet toegestaan!")
         sleep(1)
     else
         term.write("Duur (seconden): ")
         local duration = tonumber(read())
         if not duration or duration <= 0 then
-            print("Ongeldige tijd, probeer opnieuw.")
+            print("⚠️  Ongeldige tijd, probeer opnieuw.")
             sleep(1)
         else
             table.insert(slides, {text=text, time=duration})
-            print("Dia toegevoegd! ("..text.." - "..duration.."s)")
+            print("✅ Dia toegevoegd! ("..text.." - "..duration.."s)")
             sleep(1)
         end
     end
@@ -111,48 +104,42 @@ term.setCursorPos(1,1)
 print("Presentatie start over 2 seconden...")
 sleep(2)
 
--- Functie om slides 1x te tonen
+-- Functie om slides af te spelen
 local function playSlides()
     for _, slide in ipairs(slides) do
-        term.clear()
-        -- Lokaal scherm
-        local w, h = term.getSize()
-        local lines = scaleTextForMonitor({getSize=function() return w,h end, setCursorPos=function() end, write=function() end}, slide.text)
-        local startY = math.floor((h - #lines) / 2) + 1
-        for i, line in ipairs(lines) do
-            local x = math.floor((w - #line) / 2) + 1
-            local y = startY + i - 1
-            if y <= h then
-                term.setCursorPos(x, y)
-                term.write(line)
-            end
-        end
-
-        -- Alle monitors
+        showCenteredText(term, slide.text)
         showOnMonitors(slide.text)
-
         sleep(slide.time)
     end
 end
 
--- Blijf loopen tot key of klik
-parallel.waitForAny(
-    function()
-        while true do
-            playSlides()
-        end
-    end,
-    function() os.pullEvent("key") end,
-    function() os.pullEvent("mouse_click") end
-)
+-- Zorg dat monitors altijd leeggemaakt worden bij einde
+local function clearAll()
+    term.clear()
+    term.setCursorPos(1,1)
+    for _, screenName in ipairs(screens) do
+        local mon = peripheral.wrap(screenName)
+        if mon then mon.clear() end
+    end
+end
+
+-- Parallel: presentatie + afbreken met key/muisklik
+local function presenter()
+    while true do
+        playSlides()
+    end
+end
+
+local function stopper()
+    os.pullEvent("key")
+end
+
+local function mouseStopper()
+    os.pullEvent("mouse_click")
+end
+
+parallel.waitForAny(presenter, stopper, mouseStopper)
 
 -- Stop
-term.clear()
-term.setCursorPos(1,1)
+clearAll()
 print("Presentatie gestopt!")
-
--- Clear monitors
-for _, screenName in ipairs(screens) do
-    local mon = peripheral.wrap(screenName)
-    if mon then mon.clear() end
-end
