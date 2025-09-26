@@ -1,16 +1,15 @@
 -- PP.lua
--- CoreLogic Presentatie Player - continuous loop, monitors, speakers, autosave
+-- Presentatie Player met autosave + resume + pause
 
 local stateFile = "session.dat"
 local saveFile  = "pp_state.json"
 
--- =========================
--- Helper functies
--- =========================
-local function saveState(state)
+-- JSON helpers
+local function saveState(data)
     local f = fs.open(saveFile, "w")
-    f.write(textutils.serializeJSON(state))
+    f.write(textutils.serializeJSON(data))
     f.close()
+    -- schrijf ook naar session.dat zodat startup weet wat te openen
     local s = fs.open(stateFile, "w")
     s.writeLine("PP.lua")
     s.close()
@@ -29,52 +28,49 @@ local function clearState()
     if fs.exists(stateFile) then fs.delete(stateFile) end
 end
 
--- =========================
--- Peripherals
--- =========================
-local monitors = {}
-local speakers = {}
-for _, name in ipairs(peripheral.getNames()) do
-    local t = peripheral.getType(name)
-    if t == "monitor" then
-        table.insert(monitors, peripheral.wrap(name))
-    elseif t == "speaker" then
-        table.insert(speakers, peripheral.wrap(name))
-    end
-end
-
-local function playNotification()
-    for _, spk in ipairs(speakers) do
-        if spk then pcall(spk.playSound, "minecraft:note_block.pling") end
-    end
-end
-
--- =========================
--- Tekst weergave
--- =========================
-local function splitText(text, width)
-    local lines = {}
-    local line = ""
-    for word in text:gmatch("%S+") do
-        if #line + #word + 1 <= width then
-            if line == "" then
-                line = word
-            else
-                line = line .. " " .. word
-            end
-        else
-            table.insert(lines, line)
-            line = word
+-- Zoek monitors
+local modem = peripheral.find("modem")
+local screens = {}
+if modem then
+    for _, name in ipairs(peripheral.getNames()) do
+        if peripheral.getType(name) == "monitor" then
+            table.insert(screens, name)
         end
     end
-    if line ~= "" then table.insert(lines, line) end
+end
+
+-- Helpers voor tekst tonen
+local function splitText(text, width)
+    local lines, start = {}, 1
+    while start <= #text do
+        local chunk = text:sub(start, start + width - 1)
+        table.insert(lines, chunk)
+        start = start + width
+    end
+    return lines
+end
+
+local function scaleTextForMonitor(mon, text)
+    local w, h = mon.getSize()
+    local lines = splitText(text, w)
+    if #lines > h then
+        local maxLines = h
+        lines = {}
+        for i = 1, maxLines do
+            if i == maxLines then
+                lines[i] = string.rep(".", w)
+            else
+                lines[i] = text:sub((i-1)*w +1, i*w)
+            end
+        end
+    end
     return lines
 end
 
 local function showOnMonitor(mon, text)
     mon.clear()
     local w, h = mon.getSize()
-    local lines = splitText(text, w)
+    local lines = scaleTextForMonitor(mon, text)
     local startY = math.floor((h - #lines) / 2) + 1
     for i, line in ipairs(lines) do
         local x = math.floor((w - #line) / 2) + 1
@@ -87,50 +83,38 @@ local function showOnMonitor(mon, text)
 end
 
 local function showOnMonitors(text)
-    for _, mon in ipairs(monitors) do
-        showOnMonitor(mon, text)
+    for _, name in ipairs(screens) do
+        local mon = peripheral.wrap(name)
+        if mon then showOnMonitor(mon, text) end
     end
 end
 
--- =========================
--- j/n prompt
--- =========================
-local function askYesNo(prompt)
-    while true do
-        term.write(prompt .. " (j/n): ")
-        local ans = read()
-        if ans then
-            ans = ans:lower()
-            if ans == "j" or ans == "y" then return true end
-            if ans == "n" then return false end
-        end
-        print("Ongeldige invoer, typ j of n.")
-    end
-end
-
--- =========================
--- Laad of bouw slides
--- =========================
+-- Laad bestaande state
 local state = loadState() or { slides = {}, current = 1, paused = false }
 
+-- Als geen slides → vraag input
 if #state.slides == 0 then
     while true do
         term.clear()
         term.setCursorPos(1,1)
         print("=== Presentatie Builder ===")
-        print("Typ de tekst voor een dia, of 'klaar' om te stoppen.")
+        print("Typ de tekst voor de dia, of 'klaar' om te stoppen.")
         term.write("Tekst: ")
         local text = read()
+
         if text == "klaar" then break end
-        if text ~= "" then
+        if text == "" then
+            print("Lege tekst is niet toegestaan!")
+            sleep(1)
+        else
             term.write("Duur (seconden): ")
-            local dur = tonumber(read())
-            if dur and dur > 0 then
-                table.insert(state.slides, {text=text, time=dur})
-                print("Dia toegevoegd! ("..text.." - "..dur.."s)")
+            local duration = tonumber(read())
+            if not duration or duration <= 0 then
+                print("Ongeldige tijd, probeer opnieuw.")
                 sleep(1)
             else
-                print("Ongeldige tijd, probeer opnieuw.")
+                table.insert(state.slides, {text=text, time=duration})
+                print("Dia toegevoegd! ("..text.." - "..duration.."s)")
                 sleep(1)
             end
         end
@@ -148,15 +132,16 @@ if #state.slides == 0 then
     return
 end
 
--- =========================
--- Pauze check bij resume
--- =========================
+-- Check of presentatie gepauzeerd was
 if state.paused then
     term.clear()
     term.setCursorPos(1,1)
-    print("Presentatie gepauzeerd op dia " .. state.current)
-    local resume = askYesNo("Wil je hervatten?")
-    if not resume then state.current = 1 end
+    print("Presentatie was gepauzeerd op dia " .. state.current)
+    print("Wil je hervatten? (j/n)")
+    local answer = read()
+    if answer:lower() ~= "j" then
+        state.current = 1
+    end
     state.paused = false
     saveState(state)
 end
@@ -164,61 +149,58 @@ end
 -- Countdown
 term.clear()
 term.setCursorPos(1,1)
-print("Presentatie start over 2 seconden...")
+print("Presentatie start/resume over 2 seconden...")
 sleep(2)
 
--- =========================
--- Main loop (continuous)
--- =========================
-local totalSlides = #state.slides
-local currentIndex = state.current
+-- Slide loop
+local function playSlides()
+    while state.current <= #state.slides do
+        local slide = state.slides[state.current]
 
-while true do
-    local slide = state.slides[currentIndex]
+        -- Lokale scherm
+        term.clear()
+        local w, h = term.getSize()
+        local lines = splitText(slide.text, w)
+        local startY = math.floor((h - #lines) / 2) + 1
+        for i, line in ipairs(lines) do
+            local x = math.floor((w - #line) / 2) + 1
+            local y = startY + i - 1
+            if y <= h then
+                term.setCursorPos(x, y)
+                term.write(line)
+            end
+        end
 
-    -- Sla huidige index meteen op
-    state.current = currentIndex
-    saveState(state)
+        -- Monitors
+        showOnMonitors(slide.text)
 
-    -- Terminal weergave
+        local startTime = os.clock()
+        while os.clock() - startTime < slide.time do
+            local ev = {os.pullEventRaw()}
+            if ev[1] == "terminate" or ev[1] == "key" or ev[1] == "mouse_click" then
+                state.paused = true
+                saveState(state) -- sla op waar je bent en dat hij gepauzeerd is
+                term.clear()
+                term.setCursorPos(1,1)
+                print("Presentatie gepauzeerd. Hervat na reboot!")
+                return
+            end
+        end
+
+        -- Volgende slide
+        state.current = state.current + 1
+        saveState(state)
+    end
+
+    -- Klaar -> opschonen
     term.clear()
-    local w, h = term.getSize()
-    local lines = splitText(slide.text, w)
-    local startY = math.floor((h - #lines) / 2) + 1
-    for j, line in ipairs(lines) do
-        local x = math.floor((w - #line) / 2) + 1
-        local y = startY + j - 1
-        if y <= h then
-            term.setCursorPos(x, y)
-            term.write(line)
-        end
+    term.setCursorPos(1,1)
+    print("Presentatie voltooid!")
+    clearState()
+    for _, name in ipairs(screens) do
+        local mon = peripheral.wrap(name)
+        if mon then mon.clear() end
     end
-
-    -- Monitoren
-    showOnMonitors(slide.text)
-
-    -- Speaker notificatie
-    playNotification()
-
-    -- Start timer voor deze dia
-    local timerId = os.startTimer(slide.time)
-
-    -- Event loop tot timer afloopt of gebruiker pauzeert
-    while true do
-        local event, id = os.pullEventRaw()
-        if event == "timer" and id == timerId then
-            break -- ga door naar volgende dia
-        elseif event == "terminate" or event == "key" or event == "mouse_click" then
-            state.paused = true
-            saveState(state)
-            term.clear()
-            term.setCursorPos(1,1)
-            print("Presentatie gepauzeerd. Hervat na reboot!")
-            return
-        end
-    end
-
-    -- Volgende slide
-    currentIndex = currentIndex + 1
-    if currentIndex > totalSlides then currentIndex = 1 end
 end
+
+playSlides()
