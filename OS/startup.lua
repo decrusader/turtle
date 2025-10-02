@@ -33,7 +33,8 @@ local files = {
     { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/PP.lua",        name = "PP.lua" },
     { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/mine.lua",      name = "mine.lua" },
     { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/music.lua",     name = "music.lua" },
-    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/chat.lua",      name = "chat.lua" }
+    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/chat.lua",      name = "chat.lua" },
+    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/cobblestone_farm.lua", name = "cobblestone_farm.lua" }
 }
 
 -- Download alle bestanden
