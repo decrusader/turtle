@@ -1,5 +1,5 @@
 -- Log naar Plank Converter (Automatisch: Input Boven, Output Onder)
--- Opgelost voor 'suck' error en verbeterd om continu te draaien
+-- Opgelost voor 'number expected' error en verbeterd om continu te draaien
 
 local LOG_ITEM_NAME_PARTIAL = "_log"  -- Matcht alle item-ID's die eindigen op _log
 local INPUT_SIDE = "up"              -- Inventaris om logs uit te halen (boven)
@@ -16,14 +16,19 @@ local function suckLogs()
     local success, count
 
     -- Zuig continu totdat er geen logs meer zijn of de inventaris vol is.
-    -- turtle.suck("up") trekt één stack van één item. We moeten het herhalen.
     repeat
-        -- Zuigt één itemstack naar de eerste lege slot (of vult een bestaande logstack)
+        -- Zuigt één itemstack naar de eerste lege slot of vult een bestaande logstack.
+        -- We vangen 'count' op. Als 'success' false is, is 'count' meestal nil.
         success, count = turtle.suck(INPUT_SIDE)
-        if success and count > 0 then
-            totalSucked = totalSucked + count
+
+        if success then
+            -- Als het zuigen succesvol was, tellen we de hoeveelheid op.
+            totalSucked = totalSucked + (count or 1) -- 'count' zou het aantal opgezogen items moeten zijn, maar default naar 1 voor de zekerheid.
         end
-    until not success or totalSucked >= 64*16 -- Stop als suck faalt of als inventaris vol is (max 16 stacks * 64 items)
+        
+        -- Zorg ervoor dat we items met een specifieke naam zoeken voordat we doorgaan
+        -- We stoppen de lus als 'success' false is (geen items meer, of probleem).
+    until not success or totalSucked >= 64*16 -- Stop als suck faalt of als inventaris (theoretisch) vol is.
 
     if totalSucked > 0 then
         print(string.format("Logs binnengehaald: %d stuks.", totalSucked))
@@ -53,7 +58,6 @@ local function craftAllLogs()
                 print(string.format("Gecraft: %d logs omgezet naar planken.", logsToCraft))
                 crafted = true
             end
-            -- Zelfs als het craften faalt (volle inventaris), gaan we door om de output te dumpen
         end
     end
     
@@ -73,13 +77,11 @@ local function dumpPlanks()
         if item and string.find(item.name, "_planks$") then
             
             -- Stuur de planken naar de output inventaris (onder)
-            -- turtle.drop probeert de hele stack te droppen
             local success, count = turtle.drop(OUTPUT_SIDE, item.count)
             
             if success then
-                dumpedCount = dumpedCount + count
+                dumpedCount = dumpedCount + (count or item.count)
             end
-            -- We gaan door met de volgende slot, zelfs na een succesvolle drop.
         end
     end
     
@@ -101,12 +103,12 @@ while true do
     -- 3. Planken dumpen
     local planksDumped = dumpPlanks()
     
-    -- Wachtmechanisme: Als er niets is gedaan (geen logs, geen planken gedumpt), wacht langer.
+    -- Wachtmechanisme
     if not logsPulled and not crafted and not planksDumped then
-        print("Geen logs gevonden, 5 seconden wachten...")
+        print("Geen activiteit. 5 seconden wachten...")
         os.sleep(5) 
     else
-        -- Korte pauze voor de volgende cyclus om de serverbelasting te verminderen
+        -- Korte pauze voor de volgende cyclus
         sleepShort()
     end
 end
