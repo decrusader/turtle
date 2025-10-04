@@ -1,9 +1,9 @@
 -- Log naar Plank Converter (Automatisch: Input Boven, Output Onder)
 -- Opgelost voor 'number expected' error door striktere controle op turtle.suck() output
+-- en correcte directionele functies (suckUp/dropDown).
 
 local LOG_ITEM_NAME_PARTIAL = "_log"  -- Matcht alle item-ID's die eindigen op _log
-local INPUT_SIDE = "up"              -- Inventaris om logs uit te halen (boven)
-local OUTPUT_SIDE = "down"           -- Inventaris om planken in te plaatsen (onder)
+local OUTPUT_SIDE = "down"            -- Variabele behouden voor duidelijkheid, maar niet meer direct gebruikt in de drop-functie
 
 -- Functie om de turtle te laten wachten, nuttig in een oneindige lus
 local function sleepShort()
@@ -15,11 +15,11 @@ local function suckLogs()
     local totalSucked = 0
     local success, count
 
-    -- De lus gaat door zolang turtle.suck() succesvol is.
+    -- De lus gaat door zolang turtle.suckUp() succesvol is.
     repeat
-        -- turtle.suck() retourneert (boolean succes, number/string/nil count).
+        -- turtle.suckUp() retourneert (boolean succes, number/string/nil count).
         -- We vangen beide op.
-        success, count = turtle.suck(INPUT_SIDE)
+        success, count = turtle.suckUp() -- *** CORRECTIE 1 ***
 
         if success then
             -- Als het zuigen succesvol was, MOET count een getal zijn (hoeveelheid items).
@@ -83,7 +83,7 @@ local function dumpPlanks()
         if item and string.find(item.name, "_planks$") then
             
             -- Stuur de planken naar de output inventaris (onder)
-            local success, count = turtle.drop(OUTPUT_SIDE, item.count)
+            local success, count = turtle.dropDown(item.count) -- *** CORRECTIE 2 ***
             
             if success and type(count) == "number" then
                 dumpedCount = dumpedCount + count
