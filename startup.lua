@@ -1,5 +1,5 @@
 -- Log naar Plank Converter (Automatisch: Input Boven, Output Onder)
--- Opgelost voor 'number expected' error en verbeterd om continu te draaien
+-- Opgelost voor 'number expected' error door striktere controle op turtle.suck() output
 
 local LOG_ITEM_NAME_PARTIAL = "_log"  -- Matcht alle item-ID's die eindigen op _log
 local INPUT_SIDE = "up"              -- Inventaris om logs uit te halen (boven)
@@ -15,20 +15,26 @@ local function suckLogs()
     local totalSucked = 0
     local success, count
 
-    -- Zuig continu totdat er geen logs meer zijn of de inventaris vol is.
+    -- De lus gaat door zolang turtle.suck() succesvol is.
     repeat
-        -- Zuigt één itemstack naar de eerste lege slot of vult een bestaande logstack.
-        -- We vangen 'count' op. Als 'success' false is, is 'count' meestal nil.
+        -- turtle.suck() retourneert (boolean succes, number/string/nil count).
+        -- We vangen beide op.
         success, count = turtle.suck(INPUT_SIDE)
 
         if success then
-            -- Als het zuigen succesvol was, tellen we de hoeveelheid op.
-            totalSucked = totalSucked + (count or 1) -- 'count' zou het aantal opgezogen items moeten zijn, maar default naar 1 voor de zekerheid.
+            -- Als het zuigen succesvol was, MOET count een getal zijn (hoeveelheid items).
+            -- We gebruiken 'type(count) == "number"' voor maximale veiligheid.
+            if type(count) == "number" then
+                totalSucked = totalSucked + count
+            else
+                -- Dit zou niet mogen gebeuren na 'success == true', maar voor de zekerheid:
+                totalSucked = totalSucked + 1 
+            end
         end
         
-        -- Zorg ervoor dat we items met een specifieke naam zoeken voordat we doorgaan
-        -- We stoppen de lus als 'success' false is (geen items meer, of probleem).
-    until not success or totalSucked >= 64*16 -- Stop als suck faalt of als inventaris (theoretisch) vol is.
+        -- Stop de lus wanneer success onwaar is.
+        -- Dit betekent dat er niets meer in de inventaris zit of dat deze vol is.
+    until not success or totalSucked >= 64*16
 
     if totalSucked > 0 then
         print(string.format("Logs binnengehaald: %d stuks.", totalSucked))
@@ -79,8 +85,11 @@ local function dumpPlanks()
             -- Stuur de planken naar de output inventaris (onder)
             local success, count = turtle.drop(OUTPUT_SIDE, item.count)
             
-            if success then
-                dumpedCount = dumpedCount + (count or item.count)
+            if success and type(count) == "number" then
+                dumpedCount = dumpedCount + count
+            elseif success then
+                -- Als 'count' geen nummer is, neem aan dat de hele stack is gedropt
+                dumpedCount = dumpedCount + item.count
             end
         end
     end
