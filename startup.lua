@@ -1,40 +1,34 @@
 -- Log naar Plank Converter (Automatisch: Input Boven, Output Onder)
--- Opgelost voor 'number expected' error door striktere controle op turtle.suck() output
--- en correcte directionele functies (suckUp/dropDown).
+-- Versie met robuustere log-herkenning en inventarisbeheer.
 
-local LOG_ITEM_NAME_PARTIAL = "_log"  -- Matcht alle item-ID's die eindigen op _log
-local OUTPUT_SIDE = "down"            -- Variabele behouden voor duidelijkheid, maar niet meer direct gebruikt in de drop-functie
+local LOG_ITEM_NAME_PARTIAL = "_log"  -- Matcht alle item-ID's die '_log' bevatten
 
--- Functie om de turtle te laten wachten, nuttig in een oneindige lus
+-- Functie om de turtle te laten wachten
 local function sleepShort()
     os.sleep(0.5)
 end
 
--- Functie om logs uit de inputkist te halen
+-- Functie om logs uit de inputkist te halen (zorgt dat slot 16 leeg blijft)
 local function suckLogs()
     local totalSucked = 0
     local success, count
 
-    -- De lus gaat door zolang turtle.suckUp() succesvol is.
-    repeat
-        -- turtle.suckUp() retourneert (boolean succes, number/string/nil count).
-        -- We vangen beide op.
-        success, count = turtle.suckUp() -- *** CORRECTIE 1 ***
+    -- Ga door met zuigen zolang er ruimte is en de actie slaagt.
+    -- Stopt wanneer het laatste slot (16) een item bevat.
+    while turtle.getItemCount(16) == 0 do
+        success, count = turtle.suckUp()
 
         if success then
-            -- Als het zuigen succesvol was, MOET count een getal zijn (hoeveelheid items).
-            -- We gebruiken 'type(count) == "number"' voor maximale veiligheid.
             if type(count) == "number" then
                 totalSucked = totalSucked + count
             else
-                -- Dit zou niet mogen gebeuren na 'success == true', maar voor de zekerheid:
                 totalSucked = totalSucked + 1 
             end
+        else
+            -- Stop de lus als er niets meer te zuigen valt
+            break
         end
-        
-        -- Stop de lus wanneer success onwaar is.
-        -- Dit betekent dat er niets meer in de inventaris zit of dat deze vol is.
-    until not success or totalSucked >= 64*16
+    end
 
     if totalSucked > 0 then
         print(string.format("Logs binnengehaald: %d stuks.", totalSucked))
@@ -44,23 +38,20 @@ local function suckLogs()
     end
 end
 
--- Functie om de logs om te zetten naar planken
+-- Functie om de logs om te zetten naar planken (minder strikte naamcontrole)
 local function craftAllLogs()
     local crafted = false
     
-    -- Loop door alle 16 slots om te kijken of er logs zijn om te craften
     for i = 1, 16 do
         turtle.select(i)
         local item = turtle.getItemDetail()
         
-        -- Controleer op logs
-        if item and string.find(item.name, LOG_ITEM_NAME_PARTIAL .. "$") then
+        -- Controleert of '_log' in de itemnaam voorkomt
+        if item and string.find(item.name, LOG_ITEM_NAME_PARTIAL) then
             local logsToCraft = item.count
             
-            -- Probeer alle logs in de geselecteerde stack te craften
-            local success = turtle.craft(logsToCraft)
-            
-            if success then
+            -- Craft de geselecteerde stack (meest betrouwbare methode)
+            if turtle.craft() then
                 print(string.format("Gecraft: %d logs omgezet naar planken.", logsToCraft))
                 crafted = true
             end
@@ -74,21 +65,17 @@ end
 local function dumpPlanks()
     local dumpedCount = 0
     
-    -- Loop door alle slots van de turtle (1 tot 16)
     for i = 1, 16 do
         turtle.select(i)
         local item = turtle.getItemDetail()
         
-        -- Controleer op planken (alle item-ID's die eindigen op _planks)
-        if item and string.find(item.name, "_planks$") then
-            
-            -- Stuur de planken naar de output inventaris (onder)
-            local success, count = turtle.dropDown(item.count) -- *** CORRECTIE 2 ***
+        -- Controleer op planken
+        if item and string.find(item.name, "_planks") then
+            local success, count = turtle.dropDown(item.count)
             
             if success and type(count) == "number" then
                 dumpedCount = dumpedCount + count
             elseif success then
-                -- Als 'count' geen nummer is, neem aan dat de hele stack is gedropt
                 dumpedCount = dumpedCount + item.count
             end
         end
@@ -117,7 +104,6 @@ while true do
         print("Geen activiteit. 5 seconden wachten...")
         os.sleep(5) 
     else
-        -- Korte pauze voor de volgende cyclus
         sleepShort()
     end
 end
