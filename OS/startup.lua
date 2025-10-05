@@ -35,7 +35,7 @@ local files = {
     { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/music.lua",     name = "music.lua" },
     { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/chat.lua",      name = "chat.lua" },
     { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/cobblestone_farm.lua", name = "cobblestone_farm.lua" },
-    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/build.lua", name = "build.lua"}
+    { url = "https://raw.githubusercontent.com/decrusader/turtle/refs/heads/main/OS/build.lua", name = "build.lua" }
 }
 
 -- Download alle bestanden
