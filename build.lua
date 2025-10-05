@@ -68,7 +68,9 @@ local function layer()
             lengteAchter()
             turtle.turnRight()
             turtle.forward()
-            placeBlock()
+            if j ~= width then
+                placeBlock()
+            end
             turtle.turnLeft()
         else
             lengteVoor()
